@@ -1,4 +1,4 @@
-import { fetchOngoingAnime, searchAnime, fetchComicPustaka } from '@/lib/scraper';
+import { fetchOngoingAnime, searchAnime } from '@/lib/scraper';
 
 interface PageProps {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -12,12 +12,21 @@ export default async function HomePage({ searchParams }: PageProps) {
 
   const isSearch = search.trim().length > 0;
   
-  // Fetch data on the server in parallel to prevent Vercel serverless function timeouts
-  const [ongoingList, latestComics, searchResults] = await Promise.all([
-    isSearch ? Promise.resolve([]) : fetchOngoingAnime(page),
-    isSearch ? Promise.resolve([]) : fetchComicPustaka(1),
-    isSearch ? searchAnime(search) : Promise.resolve([])
-  ]);
+  // Fetch data on the server
+  let ongoingList = isSearch ? [] : await fetchOngoingAnime(page);
+  let searchResults = isSearch ? await searchAnime(search) : [];
+
+  // Static list of popular manga for the slider
+  const mangaList = [
+    { title: "Blue Lock", ch: "Ch. 240", bg: "from-blue-600/30 to-slate-900" },
+    { title: "Chainsaw Man", ch: "Ch. 152", bg: "from-orange-600/30 to-slate-900" },
+    { title: "Spy x Family", ch: "Ch. 92", bg: "from-teal-600/30 to-slate-900" },
+    { title: "Kaiju No. 8", ch: "Ch. 104", bg: "from-cyan-600/30 to-slate-900" },
+    { title: "Boruto: TBV", ch: "Ch. 8", bg: "from-indigo-600/30 to-slate-900" },
+    { title: "Black Clover", ch: "Ch. 370", bg: "from-red-600/30 to-slate-900" },
+    { title: "My Hero Academia", ch: "Ch. 418", bg: "from-emerald-600/30 to-slate-900" },
+    { title: "Sakamoto Days", ch: "Ch. 162", bg: "from-yellow-600/30 to-slate-900" }
+  ];
 
   return (
     <div className="space-y-12">
@@ -276,50 +285,32 @@ export default async function HomePage({ searchParams }: PageProps) {
 
           {/* Komik Terbaru */}
           <section className="px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto">
-            <div className="flex justify-between items-center mb-6">
-              <div className="flex items-center gap-3">
-                <div className="w-1.5 h-8 primary-gradient rounded-full"></div>
-                <h2 className="font-headline-lg text-headline-lg">Komik Terbaru</h2>
-              </div>
-              <a href="/komik" className="text-xs font-bold text-primary hover:text-white transition-colors text-decoration-none flex items-center gap-1">
-                Lihat Semua Komik
-                <span className="material-symbols-outlined text-sm">arrow_forward</span>
-              </a>
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-1.5 h-8 primary-gradient rounded-full"></div>
+              <h2 className="font-headline-lg text-headline-lg">Komik Terbaru</h2>
             </div>
             
-            {latestComics.length === 0 ? (
-              <div className="text-center py-10 bg-surface-container/20 rounded-2xl border border-white/5">
-                <p className="text-on-surface-variant text-xs">Gagal memuat komik terbaru.</p>
-              </div>
-            ) : (
-              <div className="flex overflow-x-auto gap-gutter pb-6 custom-scrollbar scroll-smooth">
-                {latestComics.slice(0, 10).map((manga) => (
-                  <a key={manga.slug} href={`/komik/${manga.slug}`} className="flex-none w-[180px] group cursor-pointer text-decoration-none text-on-surface">
-                    <div className="relative aspect-[2/3] rounded-xl overflow-hidden mb-3 anime-card-hover transition-all duration-300 border border-white/5 bg-surface-container-high/40">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={manga.thumbnail}
-                        alt={manga.title}
-                        loading="lazy"
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).src = '/asset/img/placeholder.jpg';
-                        }}
-                      />
-                      <div className="absolute top-2 left-2 px-2 py-0.5 rounded bg-surface-container-high/85 backdrop-blur-md text-[10px] font-extrabold text-white uppercase">
-                        {manga.latestChapter?.title ? manga.latestChapter.title.replace(manga.title, '').trim() : 'NEW'}
-                      </div>
-                      <div className="absolute bottom-2 right-2 px-2 py-0.5 rounded bg-primary/95 text-on-primary text-[9px] font-extrabold uppercase">
-                        {manga.type}
+            <div className="flex overflow-x-auto gap-gutter pb-6 custom-scrollbar scroll-smooth">
+              {mangaList.map((manga, i) => (
+                <div key={i} className="flex-none w-[180px] group cursor-pointer">
+                  <div className="relative aspect-[2/3] rounded-xl overflow-hidden mb-3 anime-card-hover transition-all duration-300 border border-white/5">
+                    {/* Themed gradient placeholder for komik cover since no real image is loaded */}
+                    <div className={`w-full h-full bg-gradient-to-br ${manga.bg} flex flex-col items-center justify-between p-4`}>
+                      <span className="material-symbols-outlined text-4xl text-primary mt-8 opacity-60">menu_book</span>
+                      <div className="text-center">
+                        <span className="text-[10px] font-bold tracking-widest text-primary/80 uppercase block mb-2">KOMIK</span>
                       </div>
                     </div>
-                    <h3 className="font-headline-md text-body-md line-clamp-1 group-hover:text-primary transition-colors text-center font-semibold">
-                      {manga.title}
-                    </h3>
-                  </a>
-                ))}
-              </div>
-            )}
+                    <div className="absolute top-2 left-2 px-2 py-0.5 rounded bg-surface-container-high/85 backdrop-blur-md text-[10px] font-bold text-white uppercase">
+                      {manga.ch}
+                    </div>
+                  </div>
+                  <h3 className="font-headline-md text-body-md line-clamp-1 group-hover:text-primary transition-colors text-center font-semibold">
+                    {manga.title}
+                  </h3>
+                </div>
+              ))}
+            </div>
           </section>
         </>
       )}

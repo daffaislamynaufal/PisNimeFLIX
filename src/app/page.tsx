@@ -305,7 +305,7 @@ export default async function HomePage({ searchParams }: PageProps) {
                         }}
                       />
                       <div className="absolute top-2 left-2 px-2 py-0.5 rounded bg-surface-container-high/85 backdrop-blur-md text-[10px] font-extrabold text-white uppercase">
-                        {manga.latestChapter?.title.replace(manga.title, '').trim() || 'NEW'}
+                        {manga.latestChapter?.title ? manga.latestChapter.title.replace(manga.title, '').trim() : 'NEW'}
                       </div>
                       <div className="absolute bottom-2 right-2 px-2 py-0.5 rounded bg-primary/95 text-on-primary text-[9px] font-extrabold uppercase">
                         {manga.type}

@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 
-export default function MangaMaintenancePage() {
+export default function KomikMaintenancePage() {
   const [email, setEmail] = useState('');
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [error, setError] = useState('');
@@ -55,12 +55,12 @@ export default function MangaMaintenancePage() {
 
         {/* Title */}
         <h1 className="font-display-lg text-4xl md:text-5xl font-extrabold text-white mb-6 tracking-tight leading-tight">
-          Manga Reader Sedang <span className="text-transparent bg-clip-text primary-gradient">Dipersiapkan</span>
+          Komik Reader Sedang <span className="text-transparent bg-clip-text primary-gradient">Dipersiapkan</span>
         </h1>
 
         {/* Description */}
         <p className="font-body-md text-base text-on-surface-variant max-w-xl mx-auto mb-10 leading-relaxed">
-          Kami sedang menghubungkan API Manga baru dan merancang antarmuka pembaca komik resolusi tinggi yang nyaman dibaca melalui ponsel maupun komputer. Pantau terus perkembangannya!
+          Kami sedang menghubungkan API Komik baru dan merancang antarmuka pembaca komik resolusi tinggi yang nyaman dibaca melalui ponsel maupun komputer. Pantau terus perkembangannya!
         </p>
 
         {/* Custom Feature Progress Status */}
@@ -74,7 +74,7 @@ export default function MangaMaintenancePage() {
             {/* API Integration Progress */}
             <div>
               <div className="flex justify-between text-xs font-semibold mb-1">
-                <span className="text-on-surface-variant">Integrasi API Scraper Manga</span>
+                <span className="text-on-surface-variant">Integrasi API Scraper Komik</span>
                 <span className="text-primary">85%</span>
               </div>
               <div className="w-full bg-surface-container-high/50 rounded-full h-2 overflow-hidden">
@@ -137,7 +137,7 @@ export default function MangaMaintenancePage() {
           ) : (
             <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 animate-fade-in">
               <span className="material-symbols-outlined text-lg">check_circle</span>
-              Terima kasih! Kami akan mengirimkan notifikasi saat fitur Manga dirilis.
+              Terima kasih! Kami akan mengirimkan notifikasi saat fitur Komik dirilis.
             </div>
           )}
         </div>

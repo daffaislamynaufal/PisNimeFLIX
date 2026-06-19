@@ -9,7 +9,7 @@ export function DesktopNavbar() {
   const navLinks = [
     { label: 'Home', href: '/' },
     { label: 'Anime List', href: '/anime-list' },
-    { label: 'Manga', href: '/manga' },
+    { label: 'Komik', href: '/komik' },
     { label: 'Movies', href: '/movies' },
     { label: 'Schedule', href: '/schedule' },
   ];
@@ -42,7 +42,7 @@ export function MobileNavbar() {
   const navLinks = [
     { label: 'Home', href: '/', icon: 'home' },
     { label: 'Movies', href: '/movies', icon: 'movie' },
-    { label: 'Manga', href: '/manga', icon: 'menu_book' },
+    { label: 'Komik', href: '/komik', icon: 'menu_book' },
     { label: 'Schedule', href: '/schedule', icon: 'calendar_today' },
     { label: 'Profile', href: '#', icon: 'person' },
   ];

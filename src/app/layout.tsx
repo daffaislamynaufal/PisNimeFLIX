@@ -5,8 +5,8 @@ import HeaderSearch from "./HeaderSearch";
 
 export const metadata: Metadata = {
   title: "PisNime Flix - Premium Anime Streaming",
-  description: "Website streaming anime dan baca manga Subtitle Indonesia gratis terlengkap dengan kualitas HD dan kecepatan tinggi.",
-  keywords: "streaming anime, anime sub indo, nonton anime, otakudesu, samehadaku, anime indonesia, manga indo",
+  description: "Website streaming anime dan baca komik Subtitle Indonesia gratis terlengkap dengan kualitas HD dan kecepatan tinggi.",
+  keywords: "streaming anime, anime sub indo, nonton anime, otakudesu, samehadaku, anime indonesia, komik indo, baca komik",
 };
 
 export default function RootLayout({

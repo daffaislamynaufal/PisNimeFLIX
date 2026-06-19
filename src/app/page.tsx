@@ -283,22 +283,22 @@ export default async function HomePage({ searchParams }: PageProps) {
             </div>
           </section>
 
-          {/* Manga Terbaru */}
+          {/* Komik Terbaru */}
           <section className="px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto">
             <div className="flex items-center gap-3 mb-6">
               <div className="w-1.5 h-8 primary-gradient rounded-full"></div>
-              <h2 className="font-headline-lg text-headline-lg">Manga Terbaru</h2>
+              <h2 className="font-headline-lg text-headline-lg">Komik Terbaru</h2>
             </div>
             
             <div className="flex overflow-x-auto gap-gutter pb-6 custom-scrollbar scroll-smooth">
               {mangaList.map((manga, i) => (
                 <div key={i} className="flex-none w-[180px] group cursor-pointer">
                   <div className="relative aspect-[2/3] rounded-xl overflow-hidden mb-3 anime-card-hover transition-all duration-300 border border-white/5">
-                    {/* Themed gradient placeholder for manga cover since no real image is loaded */}
+                    {/* Themed gradient placeholder for komik cover since no real image is loaded */}
                     <div className={`w-full h-full bg-gradient-to-br ${manga.bg} flex flex-col items-center justify-between p-4`}>
                       <span className="material-symbols-outlined text-4xl text-primary mt-8 opacity-60">menu_book</span>
                       <div className="text-center">
-                        <span className="text-[10px] font-bold tracking-widest text-primary/80 uppercase block mb-2">MANGA</span>
+                        <span className="text-[10px] font-bold tracking-widest text-primary/80 uppercase block mb-2">KOMIK</span>
                       </div>
                     </div>
                     <div className="absolute top-2 left-2 px-2 py-0.5 rounded bg-surface-container-high/85 backdrop-blur-md text-[10px] font-bold text-white uppercase">

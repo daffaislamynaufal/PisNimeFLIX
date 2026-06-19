@@ -11,9 +11,9 @@ interface CacheEntry<T> {
 const cache = new Map<string, CacheEntry<any>>();
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes cache TTL
 
-async function getCached<T>(key: string, fetcher: () => Promise<T>): Promise<T> {
+async function getCached<T>(key: string, fetcher: () => Promise<T>, ttl: number = CACHE_DURATION): Promise<T> {
   const cached = cache.get(key);
-  if (cached && (Date.now() - cached.timestamp < CACHE_DURATION)) {
+  if (cached && (Date.now() - cached.timestamp < ttl)) {
     return cached.data;
   }
   const freshData = await fetcher();
@@ -25,7 +25,10 @@ async function getCached<T>(key: string, fetcher: () => Promise<T>): Promise<T> 
 
 // Helper function to optionally route requests through a proxy service to bypass Cloudflare
 async function scraperRequest(method: 'GET' | 'POST', url: string, data?: any, customHeaders?: any) {
-  const proxyPrefix = process.env.SCRAPER_PROXY_PREFIX || '';
+  let proxyPrefix = process.env.SCRAPER_PROXY_PREFIX || '';
+  if (!proxyPrefix && url.includes('sankavollerei')) {
+    proxyPrefix = 'https://pisnime-proxy.dfaxploit.workers.dev/?url=';
+  }
   
   let requestUrl = url;
   let headers = { ...customHeaders };
@@ -571,7 +574,7 @@ export async function fetchComicPustaka(page: number = 1): Promise<ComicListItem
       console.error(`Error in fetchComicPustaka page ${page}:`, error);
       return [];
     }
-  });
+  }, 3 * 60 * 60 * 1000); // Cache pustaka for 3 hours
 }
 
 export async function searchComics(query: string): Promise<ComicListItem[]> {
@@ -614,7 +617,7 @@ export async function fetchComicDetail(slug: string): Promise<ComicDetail | null
       console.error(`Error in fetchComicDetail for ${slug}:`, error);
       return null;
     }
-  });
+  }, 6 * 60 * 60 * 1000); // Cache comic details for 6 hours
 }
 
 export async function fetchChapterDetail(slug: string): Promise<ComicChapterDetail | null> {
@@ -628,7 +631,7 @@ export async function fetchChapterDetail(slug: string): Promise<ComicChapterDeta
       console.error(`Error in fetchChapterDetail for ${slug}:`, error);
       return null;
     }
-  });
+  }, 12 * 60 * 60 * 1000); // Cache chapter details (images) for 12 hours
 }
 
 // In-memory cache for dynamic multi-page type filtering

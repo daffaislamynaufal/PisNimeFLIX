@@ -27,7 +27,7 @@ export async function GET(request: Request) {
       status: 200,
       headers: {
         'Content-Type': contentType,
-        'Cache-Control': 'public, max-age=86400', // Cache for 1 day
+        'Cache-Control': 'public, max-age=31536000, immutable', // Cache permanently (1 year)
       }
     });
   } catch (error: any) {

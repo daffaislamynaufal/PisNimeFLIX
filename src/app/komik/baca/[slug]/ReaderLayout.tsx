@@ -210,22 +210,27 @@ export default function ReaderLayout({ chapterDetail, comicDetail, currentSlug }
             chapterDetail.images.map((imgUrl, index) => (
               <div 
                 key={index} 
-                className="w-full relative flex justify-center bg-zinc-950/60"
+                className="w-full relative flex justify-center bg-zinc-950/45 min-h-[65vh] items-center border-b border-white/5"
               >
+                {/* Loader Placeholder (covered when image loads) */}
+                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none gap-2 text-on-surface-variant/20">
+                  <span className="material-symbols-outlined animate-spin text-3xl">sync</span>
+                  <span className="text-[9px] font-mono tracking-widest uppercase">Memuat Hal {index + 1}...</span>
+                </div>
+
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={`/api/komik/image?url=${encodeURIComponent(imgUrl)}`}
                   alt={`Halaman ${index + 1}`}
                   loading="lazy"
-                  className="max-w-full h-auto object-contain select-none"
+                  className="max-w-full h-auto object-contain select-none relative z-10"
                   onError={(e) => {
-                    // Fallback to simple reload on click or basic error handling
                     console.error('Image load failed for URL:', imgUrl);
                   }}
                 />
                 
                 {/* Page Number indicator overlay */}
-                <span className="absolute bottom-2 right-4 px-2 py-0.5 bg-black/75 rounded text-[8px] font-mono text-zinc-500 pointer-events-none border border-zinc-800">
+                <span className="absolute bottom-2 right-4 px-2 py-0.5 bg-black/75 rounded text-[8px] font-mono text-zinc-500 pointer-events-none border border-zinc-800 z-20">
                   Hal {index + 1} / {chapterDetail.images.length}
                 </span>
               </div>

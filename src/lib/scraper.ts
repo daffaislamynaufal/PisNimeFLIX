@@ -13,15 +13,34 @@ const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes cache TTL
 
 async function getCached<T>(key: string, fetcher: () => Promise<T>, ttl: number = CACHE_DURATION): Promise<T> {
   const cached = cache.get(key);
-  if (cached && (Date.now() - cached.timestamp < ttl)) {
+  const isExpired = cached ? (Date.now() - cached.timestamp >= ttl) : true;
+
+  if (cached && !isExpired) {
     return cached.data;
   }
-  const freshData = await fetcher();
-  if (freshData && (!Array.isArray(freshData) || freshData.length > 0)) {
-    cache.set(key, { data: freshData, timestamp: Date.now() });
+
+  try {
+    const freshData = await fetcher();
+    const isValid = freshData && (!Array.isArray(freshData) || freshData.length > 0);
+    if (isValid) {
+      cache.set(key, { data: freshData, timestamp: Date.now() });
+      return freshData;
+    }
+  } catch (error) {
+    console.error(`Fetch failed for key ${key}:`, error);
   }
-  return freshData;
+
+  // Fallback to expired stale cached data if fetching fresh data failed or returned empty
+  if (cached) {
+    console.warn(`Returning stale cached data for key ${key} as fallback`);
+    return cached.data;
+  }
+
+  // If no cached data exists, execute the fetcher one last time to throw or return its default fallback
+  return fetcher();
 }
+
+let directComicRateLimitedUntil = 0;
 
 // Helper function to optionally route requests through a proxy service to bypass Cloudflare
 async function scraperRequest(method: 'GET' | 'POST', url: string, data?: any, customHeaders?: any) {
@@ -66,17 +85,31 @@ async function scraperRequest(method: 'GET' | 'POST', url: string, data?: any, c
   };
 
   if (isComic) {
+    const now = Date.now();
+    const isDirectBlocked = now < directComicRateLimitedUntil;
+
+    if (isDirectBlocked) {
+      // Direct is currently rate-limited, skip direct and use proxy directly
+      try {
+        return await makeProxied();
+      } catch (err: any) {
+        console.warn(`Proxied request to ${url} failed, trying direct as absolute fallback...`);
+        return await makeDirect();
+      }
+    }
+
     // For comics, try DIRECT first to avoid using shared proxy rate-limit quota.
-    // Fallback to proxy if direct request fails or returns rate-limit warning.
     try {
       const res = await makeDirect();
       if (isRateLimitResponse(res)) {
-        console.warn(`Direct request to ${url} hit rate limit warning. Trying via proxy...`);
+        console.warn(`Direct request to ${url} hit rate limit warning. Marking direct as rate-limited and trying via proxy...`);
+        directComicRateLimitedUntil = Date.now() + 5 * 60 * 1000; // block direct for 5 minutes
         return await makeProxied();
       }
       return res;
     } catch (err: any) {
-      console.warn(`Direct request to ${url} failed (${err.message}). Trying via proxy...`);
+      console.warn(`Direct request to ${url} failed (${err.message}). Marking direct as rate-limited and trying via proxy...`);
+      directComicRateLimitedUntil = Date.now() + 5 * 60 * 1000; // block direct for 5 minutes
       return await makeProxied();
     }
   } else {

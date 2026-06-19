@@ -4,6 +4,12 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import ChapterList from './ChapterList';
 
+const getProxiedImageUrl = (url: string) => {
+  if (!url) return '/asset/img/placeholder.jpg';
+  if (url.startsWith('/') || url.startsWith('data:')) return url;
+  return `/api/komik/image?url=${encodeURIComponent(url)}`;
+};
+
 interface ComicDetailPageProps {
   params: Promise<{ slug: string }>;
 }
@@ -50,7 +56,7 @@ export default async function ComicDetailPage({ params }: ComicDetailPageProps) 
       {/* Blurred Backdrop */}
       <div 
         className="absolute inset-0 bg-cover bg-center blur-[80px] opacity-10 pointer-events-none"
-        style={{ backgroundImage: `url(${comic.image})` }}
+        style={{ backgroundImage: `url(${getProxiedImageUrl(comic.image)})` }}
       ></div>
 
       {/* Decorative Glow Orbs */}
@@ -74,7 +80,7 @@ export default async function ComicDetailPage({ params }: ComicDetailPageProps) 
             <div className="relative aspect-[3/4] rounded-2xl overflow-hidden border border-white/10 shadow-2xl bg-surface-container-high/40">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={comic.image}
+                src={getProxiedImageUrl(comic.image)}
                 alt={comic.title}
                 className="w-full h-full object-cover"
               />
@@ -187,7 +193,7 @@ export default async function ComicDetailPage({ params }: ComicDetailPageProps) 
                     <div className="relative aspect-[3/4] overflow-hidden bg-surface-container-high/40">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
-                        src={item.image}
+                        src={getProxiedImageUrl(item.image)}
                         alt={item.title}
                         loading="lazy"
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"

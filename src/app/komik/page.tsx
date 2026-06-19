@@ -18,6 +18,12 @@ interface ComicItem {
 }
 
 export default function KomikCatalogPage() {
+  const getProxiedImageUrl = (url: string) => {
+    if (!url) return '/asset/img/placeholder.jpg';
+    if (url.startsWith('/') || url.startsWith('data:')) return url;
+    return `/api/komik/image?url=${encodeURIComponent(url)}`;
+  };
+
   const [activeTab, setActiveTab] = useState<'all' | 'manga' | 'manhwa' | 'manhua'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [searchTrigger, setSearchTrigger] = useState('');
@@ -213,7 +219,7 @@ export default function KomikCatalogPage() {
                     <Link href={`/komik/${comic.slug}`} className="relative aspect-[3/4] block overflow-hidden bg-surface-container-high/40">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
-                        src={comic.thumbnail}
+                        src={getProxiedImageUrl(comic.thumbnail)}
                         alt={comic.title}
                         loading="lazy"
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"

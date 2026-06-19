@@ -25,29 +25,72 @@ async function getCached<T>(key: string, fetcher: () => Promise<T>, ttl: number 
 
 // Helper function to optionally route requests through a proxy service to bypass Cloudflare
 async function scraperRequest(method: 'GET' | 'POST', url: string, data?: any, customHeaders?: any) {
-  let proxyPrefix = process.env.SCRAPER_PROXY_PREFIX || '';
-  if (!proxyPrefix && url.includes('sankavollerei')) {
-    proxyPrefix = 'https://pisnime-proxy.dfaxploit.workers.dev/?url=';
-  }
+  const isComic = url.includes('sankavollerei');
   
-  let requestUrl = url;
-  let headers = { ...customHeaders };
+  // Helper to make a direct request
+  const makeDirect = async () => {
+    const headers = { 
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      ...customHeaders 
+    };
+    if (method === 'POST') {
+      return await axios.post(url, data, { headers });
+    } else {
+      return await axios.get(url, { headers });
+    }
+  };
 
-  if (proxyPrefix) {
+  // Helper to make a proxied request
+  const makeProxied = async () => {
+    const proxyPrefix = process.env.SCRAPER_PROXY_PREFIX || 'https://pisnime-proxy.dfaxploit.workers.dev/?url=';
+    let requestUrl = url;
     if (proxyPrefix.endsWith('url=')) {
       requestUrl = `${proxyPrefix}${encodeURIComponent(url)}`;
     } else {
       const separator = proxyPrefix.includes('?') ? '&' : '?';
       requestUrl = `${proxyPrefix}${separator}url=${encodeURIComponent(url)}`;
     }
-  } else {
-    headers['User-Agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
-  }
+    if (method === 'POST') {
+      return await axios.post(requestUrl, data, { headers: customHeaders });
+    } else {
+      return await axios.get(requestUrl, { headers: customHeaders });
+    }
+  };
 
-  if (method === 'POST') {
-    return await axios.post(requestUrl, data, { headers });
+  // Check if response contains rate limit HTML text
+  const isRateLimitResponse = (res: any) => {
+    if (res && res.data && typeof res.data === 'string') {
+      return res.data.includes('PERINGATAN RATE LIMIT') || res.data.includes('OnlySankaaa');
+    }
+    return false;
+  };
+
+  if (isComic) {
+    // For comics, try DIRECT first to avoid using shared proxy rate-limit quota.
+    // Fallback to proxy if direct request fails or returns rate-limit warning.
+    try {
+      const res = await makeDirect();
+      if (isRateLimitResponse(res)) {
+        console.warn(`Direct request to ${url} hit rate limit warning. Trying via proxy...`);
+        return await makeProxied();
+      }
+      return res;
+    } catch (err: any) {
+      console.warn(`Direct request to ${url} failed (${err.message}). Trying via proxy...`);
+      return await makeProxied();
+    }
   } else {
-    return await axios.get(requestUrl, { headers });
+    // For other scrapers (Otakudesu, Samehadaku), use proxy if configured, else direct.
+    const proxyPrefix = process.env.SCRAPER_PROXY_PREFIX || '';
+    if (proxyPrefix) {
+      try {
+        return await makeProxied();
+      } catch (err) {
+        return await makeDirect();
+      }
+    } else {
+      return await makeDirect();
+    }
   }
 }
 

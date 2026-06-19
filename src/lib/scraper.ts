@@ -23,6 +23,27 @@ async function getCached<T>(key: string, fetcher: () => Promise<T>): Promise<T> 
   return freshData;
 }
 
+// Helper function to optionally route requests through a proxy service to bypass Cloudflare
+async function scraperRequest(method: 'GET' | 'POST', url: string, data?: any, customHeaders?: any) {
+  const proxyPrefix = process.env.SCRAPER_PROXY_PREFIX || '';
+  
+  let requestUrl = url;
+  let headers = { ...customHeaders };
+
+  if (proxyPrefix) {
+    const separator = proxyPrefix.includes('?') ? '&' : '?';
+    requestUrl = `${proxyPrefix}${separator}url=${encodeURIComponent(url)}`;
+  } else {
+    headers['User-Agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+  }
+
+  if (method === 'POST') {
+    return await axios.post(requestUrl, data, { headers });
+  } else {
+    return await axios.get(requestUrl, { headers });
+  }
+}
+
 // Helper to extract the last path segment (slug) from a URL
 function getSlugFromUrl(url: string | undefined): string {
   if (!url) return '';
@@ -98,11 +119,7 @@ export async function fetchOngoingAnime(page: number = 1): Promise<OngoingAnime[
   return getCached(cacheKey, async () => {
     try {
       const url = page > 1 ? `${BASE_URL}/ongoing-anime/page/${page}/` : `${BASE_URL}/ongoing-anime/`;
-      const { data } = await axios.get(url, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        },
-      });
+      const { data } = await scraperRequest('GET', url);
       
       const $ = cheerio.load(data);
       const list: OngoingAnime[] = [];
@@ -141,11 +158,7 @@ export async function fetchCompleteAnime(page: number = 1): Promise<OngoingAnime
   return getCached(cacheKey, async () => {
     try {
       const url = page > 1 ? `${BASE_URL}/complete-anime/page/${page}/` : `${BASE_URL}/complete-anime/`;
-      const { data } = await axios.get(url, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        },
-      });
+      const { data } = await scraperRequest('GET', url);
       
       const $ = cheerio.load(data);
       const list: OngoingAnime[] = [];
@@ -182,11 +195,7 @@ export async function fetchCompleteAnime(page: number = 1): Promise<OngoingAnime
 export async function searchAnime(query: string): Promise<SearchedAnime[]> {
   try {
     const url = `${BASE_URL}/?s=${encodeURIComponent(query)}&post_type=anime`;
-    const { data } = await axios.get(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-      },
-    });
+    const { data } = await scraperRequest('GET', url);
     
     const $ = cheerio.load(data);
     const list: SearchedAnime[] = [];
@@ -229,11 +238,7 @@ export async function getAnimeDetail(id: string): Promise<AnimeDetail | null> {
   return getCached(cacheKey, async () => {
     try {
       const url = `${BASE_URL}/anime/${id}/`;
-      const { data } = await axios.get(url, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        },
-      });
+      const { data } = await scraperRequest('GET', url);
       
       const $ = cheerio.load(data);
       
@@ -331,11 +336,7 @@ export async function getEpisodeDetail(id: string): Promise<WatchDetail | null> 
   return getCached(cacheKey, async () => {
     try {
       const url = `${BASE_URL}/episode/${id}/`;
-      const { data } = await axios.get(url, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        },
-      });
+      const { data } = await scraperRequest('GET', url);
       
       const $ = cheerio.load(data);
       const title = $('.venutama h1.posttl').text().trim();
@@ -425,15 +426,12 @@ export async function getMirrorIframe(content: string, episodeId: string): Promi
       const url = `${BASE_URL}/episode/${episodeId}/`;
       
       // 1. Fetch Nonce
-      const resNonce = await axios.post(`${BASE_URL}/wp-admin/admin-ajax.php`, 
+      const resNonce = await scraperRequest('POST', `${BASE_URL}/wp-admin/admin-ajax.php`, 
         new URLSearchParams({ action: 'aa1208d27f29ca340c92c66d1926f13f' }),
         {
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'Origin': BASE_URL,
-            'Referer': url
-          }
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Origin': BASE_URL,
+          'Referer': url
         }
       );
       
@@ -441,7 +439,7 @@ export async function getMirrorIframe(content: string, episodeId: string): Promi
       if (!nonce) return null;
       
       // 2. Fetch Base64 Iframe HTML
-      const resMirror = await axios.post(`${BASE_URL}/wp-admin/admin-ajax.php`,
+      const resMirror = await scraperRequest('POST', `${BASE_URL}/wp-admin/admin-ajax.php`,
         new URLSearchParams({
           id: payload.id,
           i: payload.i,
@@ -450,12 +448,9 @@ export async function getMirrorIframe(content: string, episodeId: string): Promi
           action: '2a3505c93b0035d3f455df82bf976b84'
         }),
         {
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'Origin': BASE_URL,
-            'Referer': url
-          }
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Origin': BASE_URL,
+          'Referer': url
         }
       );
       

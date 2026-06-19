@@ -728,7 +728,7 @@ html, body {
   box-shadow: 0 20px 40px -12px rgba(221, 183, 255, 0.2);
 }
 .primary-gradient {
-  background: linear-gradient(135deg, #b76dff 0%, #aa0266 100%);
+  background-image: linear-gradient(135deg, #b76dff 0%, #aa0266 100%);
 }
 .custom-scrollbar::-webkit-scrollbar {
   width: 4px;

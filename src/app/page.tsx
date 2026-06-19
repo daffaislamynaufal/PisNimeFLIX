@@ -12,10 +12,12 @@ export default async function HomePage({ searchParams }: PageProps) {
 
   const isSearch = search.trim().length > 0;
   
-  // Fetch data on the server
-  let ongoingList = isSearch ? [] : await fetchOngoingAnime(page);
-  let searchResults = isSearch ? await searchAnime(search) : [];
-  let latestComics = isSearch ? [] : await fetchComicPustaka(1);
+  // Fetch data on the server in parallel to prevent Vercel serverless function timeouts
+  const [ongoingList, latestComics, searchResults] = await Promise.all([
+    isSearch ? Promise.resolve([]) : fetchOngoingAnime(page),
+    isSearch ? Promise.resolve([]) : fetchComicPustaka(1),
+    isSearch ? searchAnime(search) : Promise.resolve([])
+  ]);
 
   return (
     <div className="space-y-12">

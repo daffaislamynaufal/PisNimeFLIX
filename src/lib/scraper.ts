@@ -654,15 +654,25 @@ export async function getComicsByType(
   };
 
   const neededCount = page * limit;
+  let pagesFetchedThisLoop = 0;
+  const maxPagesPerLoop = 3; // Strict throttle: Max 3 API requests per user search to avoid rate limits
 
   // Scan and fetch next pages from pustaka until we have enough matches in cache
   while (
     getFilteredFromCache().length < neededCount &&
     !isPustakaFullyFetched &&
-    lastFetchedPustakaPage < 150
+    lastFetchedPustakaPage < 150 &&
+    pagesFetchedThisLoop < maxPagesPerLoop
   ) {
     const nextPage = lastFetchedPustakaPage + 1;
+    
+    // Polite throttle: add a small delay of 150ms between sequential API requests
+    if (pagesFetchedThisLoop > 0) {
+      await new Promise(resolve => setTimeout(resolve, 150));
+    }
+
     const pageItems = await fetchComicPustaka(nextPage);
+    pagesFetchedThisLoop++;
 
     if (pageItems.length === 0) {
       isPustakaFullyFetched = true;

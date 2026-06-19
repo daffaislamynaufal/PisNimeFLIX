@@ -471,3 +471,217 @@ export async function getMirrorIframe(content: string, episodeId: string): Promi
     }
   });
 }
+
+// Comic Scraping Definitions & API Connections
+const COMIC_BASE_URL = 'https://www.sankavollerei.web.id';
+
+export interface ComicListItem {
+  title: string;
+  thumbnail: string;
+  type: string;
+  genre: string;
+  url: string;
+  detailUrl: string;
+  slug: string;
+  description: string;
+  stats?: string;
+  firstChapter?: { title: string; url: string };
+  latestChapter?: { title: string; url: string };
+}
+
+export interface ComicDetailMetadata {
+  type: string;
+  author: string;
+  status: string;
+  concept: string;
+  age_rating?: string;
+  reading_direction?: string;
+}
+
+export interface ComicGenre {
+  name: string;
+  slug: string;
+  link: string;
+}
+
+export interface ComicChapterItem {
+  chapter: string;
+  slug: string;
+  link: string;
+  date: string;
+}
+
+export interface ComicDetail {
+  creator: string;
+  slug: string;
+  title: string;
+  title_indonesian: string;
+  image: string;
+  synopsis: string;
+  synopsis_full?: string;
+  summary?: string;
+  background_story?: string;
+  metadata: ComicDetailMetadata;
+  genres: ComicGenre[];
+  chapters: ComicChapterItem[];
+  similar_manga?: any[];
+}
+
+export interface ComicChapterDetail {
+  creator: string;
+  manga_title: string;
+  chapter_title: string;
+  navigation: {
+    previousChapter: string | null;
+    nextChapter: string | null;
+    chapterList: string;
+  };
+  images: string[];
+}
+
+export async function fetchComicPustaka(page: number = 1): Promise<ComicListItem[]> {
+  const cacheKey = `comic-pustaka-p${page}`;
+  return getCached(cacheKey, async () => {
+    try {
+      const url = `${COMIC_BASE_URL}/comic/pustaka/${page}`;
+      const { data } = await scraperRequest('GET', url);
+      
+      const results = data.results || [];
+      return results.map((item: any) => {
+        let slug = '';
+        if (item.detailUrl) {
+          const parts = item.detailUrl.replace(/\/$/, '').split('/');
+          slug = parts[parts.length - 1];
+        }
+        return {
+          title: item.title || '',
+          thumbnail: item.thumbnail || '',
+          type: item.type || 'Manga',
+          genre: item.genre || '',
+          url: item.url || '',
+          detailUrl: item.detailUrl || '',
+          slug: slug,
+          description: item.description || '',
+          stats: item.stats || '',
+          firstChapter: item.firstChapter || null,
+          latestChapter: item.latestChapter || null,
+        };
+      });
+    } catch (error) {
+      console.error(`Error in fetchComicPustaka page ${page}:`, error);
+      return [];
+    }
+  });
+}
+
+export async function searchComics(query: string): Promise<ComicListItem[]> {
+  try {
+    const url = `${COMIC_BASE_URL}/comic/search?q=${encodeURIComponent(query)}`;
+    const { data } = await scraperRequest('GET', url);
+    
+    const items = data.data || [];
+    return items.map((item: any) => {
+      let slug = item.slug || '';
+      if (!slug && item.href) {
+        const parts = item.href.replace(/\/$/, '').split('/');
+        slug = parts[parts.length - 1];
+      }
+      return {
+        title: item.title || '',
+        thumbnail: item.thumbnail || item.image || '',
+        type: item.type || 'Manga',
+        genre: item.genre || '',
+        url: item.href ? `${COMIC_BASE_URL}${item.href}` : '',
+        detailUrl: item.href || '',
+        slug: slug,
+        description: item.description || '',
+      };
+    });
+  } catch (error) {
+    console.error(`Error in searchComics for ${query}:`, error);
+    return [];
+  }
+}
+
+export async function fetchComicDetail(slug: string): Promise<ComicDetail | null> {
+  const cacheKey = `comic-detail-${slug}`;
+  return getCached(cacheKey, async () => {
+    try {
+      const url = `${COMIC_BASE_URL}/comic/comic/${slug}`;
+      const { data } = await scraperRequest('GET', url);
+      return data;
+    } catch (error) {
+      console.error(`Error in fetchComicDetail for ${slug}:`, error);
+      return null;
+    }
+  });
+}
+
+export async function fetchChapterDetail(slug: string): Promise<ComicChapterDetail | null> {
+  const cacheKey = `comic-chapter-${slug}`;
+  return getCached(cacheKey, async () => {
+    try {
+      const url = `${COMIC_BASE_URL}/comic/chapter/${slug}`;
+      const { data } = await scraperRequest('GET', url);
+      return data;
+    } catch (error) {
+      console.error(`Error in fetchChapterDetail for ${slug}:`, error);
+      return null;
+    }
+  });
+}
+
+// In-memory cache for dynamic multi-page type filtering
+let cachedComicItems: ComicListItem[] = [];
+let lastFetchedPustakaPage = 0;
+let isPustakaFullyFetched = false;
+
+export async function getComicsByType(
+  type: string,
+  page: number,
+  limit: number = 12
+): Promise<{ items: ComicListItem[]; hasMore: boolean }> {
+  const typeLower = type ? type.toLowerCase() : 'all';
+
+  const getFilteredFromCache = () => {
+    if (typeLower === 'all' || typeLower === 'semua') {
+      return cachedComicItems;
+    }
+    return cachedComicItems.filter((c) => c.type.toLowerCase() === typeLower);
+  };
+
+  const neededCount = page * limit;
+
+  // Scan and fetch next pages from pustaka until we have enough matches in cache
+  while (
+    getFilteredFromCache().length < neededCount &&
+    !isPustakaFullyFetched &&
+    lastFetchedPustakaPage < 150
+  ) {
+    const nextPage = lastFetchedPustakaPage + 1;
+    const pageItems = await fetchComicPustaka(nextPage);
+
+    if (pageItems.length === 0) {
+      isPustakaFullyFetched = true;
+      break;
+    }
+
+    pageItems.forEach((item) => {
+      if (!cachedComicItems.some((c) => c.slug === item.slug)) {
+        cachedComicItems.push(item);
+      }
+    });
+
+    lastFetchedPustakaPage = nextPage;
+  }
+
+  const filtered = getFilteredFromCache();
+  const startIndex = (page - 1) * limit;
+  const endIndex = page * limit;
+  const items = filtered.slice(startIndex, endIndex);
+  const hasMore =
+    filtered.length > endIndex || (!isPustakaFullyFetched && lastFetchedPustakaPage < 150);
+
+  return { items, hasMore };
+}
+

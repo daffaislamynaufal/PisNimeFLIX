@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { DesktopNavbar, MobileNavbar } from "./Navbar";
+import HeaderSearch from "./HeaderSearch";
 
 export const metadata: Metadata = {
   title: "PisNime Flix - Premium Anime Streaming",
@@ -32,18 +33,8 @@ export default function RootLayout({
               <DesktopNavbar />
             </div>
             <div className="flex items-center gap-6">
-              {/* Native Search Bar */}
-              <form action="/" method="GET" className="hidden lg:flex items-center bg-surface-container rounded-full px-4 py-2 border border-outline-variant focus-within:border-primary transition-all group w-64">
-                <span className="material-symbols-outlined text-on-surface-variant group-focus-within:text-primary">search</span>
-                <input 
-                  name="search" 
-                  type="text"
-                  placeholder="Cari anime terfavorit..." 
-                  className="bg-transparent border-none focus:outline-none focus:ring-0 text-label-sm w-full placeholder:text-on-surface-variant/50 ml-2 text-on-surface"
-                  autoComplete="off"
-                  required
-                />
-              </form>
+              {/* Responsive Search Component */}
+              <HeaderSearch />
             </div>
           </div>
         </header>

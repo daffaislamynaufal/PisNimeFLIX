@@ -31,8 +31,12 @@ async function scraperRequest(method: 'GET' | 'POST', url: string, data?: any, c
   let headers = { ...customHeaders };
 
   if (proxyPrefix) {
-    const separator = proxyPrefix.includes('?') ? '&' : '?';
-    requestUrl = `${proxyPrefix}${separator}url=${encodeURIComponent(url)}`;
+    if (proxyPrefix.endsWith('url=')) {
+      requestUrl = `${proxyPrefix}${encodeURIComponent(url)}`;
+    } else {
+      const separator = proxyPrefix.includes('?') ? '&' : '?';
+      requestUrl = `${proxyPrefix}${separator}url=${encodeURIComponent(url)}`;
+    }
   } else {
     headers['User-Agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
   }

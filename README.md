@@ -1,6 +1,6 @@
 # 🎬 PisNime Flix - Premium Anime Streaming Platform
 
-PisNime Flix adalah platform streaming anime premium subtitle Indonesia yang dibangun menggunakan **Next.js** dan **React**. Platform ini mengintegrasikan mesin scraper dinamis untuk menyajikan rilis anime ongoing terupdate, daftar film anime (movies), jadwal rilis mingguan, serta pemutar video (*streaming player*) interaktif dengan dukungan berbagai kualitas resolusi cermin (*mirror links*).
+PisNime Flix adalah platform streaming anime premium subtitle Indonesia yang dibangun menggunakan **Next.js** dan **React**. Platform ini mengintegrasikan mesin scraper dinamis untuk menyajikan rilis anime ongoing terupdate, jadwal rilis mingguan, serta pemutar video (*streaming player*) interaktif dengan dukungan berbagai kualitas resolusi cermin (*mirror links*).
 
 ---
 
@@ -8,7 +8,6 @@ PisNime Flix adalah platform streaming anime premium subtitle Indonesia yang dib
 
 - 🏠 **Beranda Premium**: Desain modern Netflix-style dilengkapi dengan *Bento Grid* interaktif untuk anime populer, daftar tontonan *ongoing* terupdate, slide manga terbaru, dan banner sorotan (*hero banner*) beranimasi.
 - 📅 **Jadwal Rilis Mingguan**: Jadwal penayangan yang dikelompokkan secara dinamis per hari (Senin s.d. Minggu). Sistem mendeteksi hari lokal pengguna untuk menyoroti jadwal hari ini secara otomatis.
-- 🎥 **Pusat Film (Movies)**: Halaman khusus yang menyaring dan menampilkan rilis film layar lebar (*theatrical/BD movies*) seperti *Kimi no Na wa*, *SAO Ordinal Scale*, *No Game No Life Zero*, dll.
 - 🔍 **Pencarian & Filter Pintar**: Navigasi pencarian judul anime secara instan, dipadukan dengan panel penyaringan (Genre, Status Ongoing/Completed, Tipe, dan Urutan).
 - 📺 **Pemutar Video & Pilihan Resolusi**: Halaman tontonan video dengan integrasi pemutar (*embedded player*) pendukung beberapa pilihan kualitas video (360p, 480p, 720p) yang diparsing langsung dari server *cermin*.
 - 📖 **Manga Coming Soon Page**: Halaman *maintenance* premium untuk fitur pembaca manga dengan status pengembangan fitur serta formulir langganan notifikasi email interaktif.
@@ -73,7 +72,6 @@ npm start
 │   │   ├── anime/            # Katalog anime, filter/pencarian, dan detail info anime berdasarkan ID
 │   │   ├── api/              # API Endpoint lokal pendukung scraper
 │   │   ├── manga/            # Halaman maintenance baca manga
-│   │   ├── movies/           # Katalog film layar lebar (movies)
 │   │   ├── schedule/         # Jadwal rilis mingguan dinamis
 │   │   ├── watch/            # Halaman streaming & pemutar video
 │   │   ├── layout.tsx        # Shell tata letak global (Header, Navbars, Footer)

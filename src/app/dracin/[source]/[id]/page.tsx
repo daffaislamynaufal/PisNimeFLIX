@@ -48,13 +48,15 @@ export async function generateMetadata({ params }: DetailPageProps) {
     const rawData = await res.json();
     const data = rawData.data || rawData;
     
-    if (!data || !data.title) {
+    if (!data) {
       return { title: 'Drama Tidak Ditemukan - PisNime Flix' };
     }
     
+    const displayTitle = data.title || `Drama #${id}`;
+    
     return {
-      title: `${data.title} Subtitle Indonesia - PisNime Flix`,
-      description: data.synopsis ? data.synopsis.slice(0, 160) : `Nonton short drama ${data.title} gratis dengan subtitle Bahasa Indonesia di PisNime Flix.`,
+      title: `${displayTitle} Subtitle Indonesia - PisNime Flix`,
+      description: data.synopsis ? data.synopsis.slice(0, 160) : `Nonton short drama ${displayTitle} gratis dengan subtitle Bahasa Indonesia di PisNime Flix.`,
     };
   } catch {
     return { title: 'Detail Drama - PisNime Flix' };
@@ -81,11 +83,12 @@ export default async function DracinDetailPage({ params }: DetailPageProps) {
     console.error('Error fetching drama details on SSR:', err);
   }
 
-  if (!detailData || !detailData.title) {
+  if (!detailData) {
     notFound();
   }
 
   const drama = detailData;
+  const dramaTitle = drama.title || `Drama #${id}`;
   const coverUrl = drama.posterImg || drama.cover || '/placeholder.jpg';
   const displaySource = source.charAt(0).toUpperCase() + source.slice(1);
   const statusLabel = drama.isCompleted === '1' ? 'Tamat' : 'Ongoing';
@@ -110,7 +113,7 @@ export default async function DracinDetailPage({ params }: DetailPageProps) {
           <span className="material-symbols-outlined text-[10px]">chevron_right</span>
           <Link href="/dracin" className="text-decoration-none text-inherit hover:text-white transition-colors">Katalog Dracin</Link>
           <span className="material-symbols-outlined text-[10px]">chevron_right</span>
-          <span className="text-primary font-bold">{drama.title}</span>
+          <span className="text-primary font-bold">{dramaTitle}</span>
         </div>
 
         {/* Drama Info Header */}
@@ -121,7 +124,7 @@ export default async function DracinDetailPage({ params }: DetailPageProps) {
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={coverUrl}
-                alt={drama.title}
+                alt={dramaTitle}
                 className="w-full h-full object-cover object-top"
               />
             </div>
@@ -154,7 +157,7 @@ export default async function DracinDetailPage({ params }: DetailPageProps) {
             </div>
 
             <h1 className="font-display-lg text-2xl md:text-4xl font-extrabold text-white mb-6 leading-tight">
-              {drama.title}
+              {dramaTitle}
             </h1>
 
             {/* Metadata Table Grid */}

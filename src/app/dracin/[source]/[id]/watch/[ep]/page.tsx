@@ -52,9 +52,12 @@ export async function generateMetadata({ params }: WatchPageProps) {
     if (!res.ok) return { title: 'Nonton Drama - PisNime Flix' };
     const rawData = await res.json();
     const drama = rawData.data || rawData;
+    
+    const displayTitle = drama.title || `Drama #${id}`;
+    
     return {
-      title: `Nonton ${drama.title} Episode ${ep} Subtitle Indonesia - PisNime Flix`,
-      description: `Streaming drama ${drama.title} Episode ${ep} dengan sub Indo gratis di PisNime Flix.`,
+      title: `Nonton ${displayTitle} Episode ${ep} Subtitle Indonesia - PisNime Flix`,
+      description: `Streaming drama ${displayTitle} Episode ${ep} dengan sub Indo gratis di PisNime Flix.`,
     };
   } catch {
     return { title: 'Nonton Drama - PisNime Flix' };
@@ -103,10 +106,11 @@ export default async function DracinWatchPage({ params }: WatchPageProps) {
     console.error('Error fetching stream data on SSR:', err);
   }
 
-  if (!drama || !drama.title) {
+  if (!drama) {
     notFound();
   }
 
+  const dramaTitle = drama.title || `Drama #${id}`;
   const episodesList = drama.episodes || [];
   const currentIndex = episodesList.findIndex(e => (e.episodeNumber || e.number) === epNum);
   
@@ -128,7 +132,7 @@ export default async function DracinWatchPage({ params }: WatchPageProps) {
           <span className="material-symbols-outlined text-[10px]">chevron_right</span>
           <Link href="/dracin" className="text-decoration-none text-inherit hover:text-white transition-colors">Katalog Dracin</Link>
           <span className="material-symbols-outlined text-[10px]">chevron_right</span>
-          <Link href={`/dracin/${source}/${id}`} className="text-decoration-none text-inherit hover:text-white transition-colors">{drama.title}</Link>
+          <Link href={`/dracin/${source}/${id}`} className="text-decoration-none text-inherit hover:text-white transition-colors">{dramaTitle}</Link>
           <span className="material-symbols-outlined text-[10px]">chevron_right</span>
           <span className="text-primary font-bold">Nonton Episode {epNum}</span>
         </div>
@@ -164,7 +168,7 @@ export default async function DracinWatchPage({ params }: WatchPageProps) {
                   {displaySource} &bull; Episode {epNum}
                 </span>
                 <h1 className="text-xl md:text-2xl font-extrabold text-white">
-                  {drama.title} - Episode {epNum}
+                  {dramaTitle} - Episode {epNum}
                 </h1>
               </div>
 

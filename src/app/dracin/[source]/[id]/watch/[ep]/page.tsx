@@ -225,20 +225,8 @@ export default async function DracinWatchPage({ params }: WatchPageProps) {
                   {episodesList.map((epItem) => {
                     const itemNum = epItem.episodeNumber || epItem.number;
                     const isActive = itemNum === epNum;
+                    const isLocked = epItem.locked;
                     
-                    if (epItem.locked) {
-                      return (
-                        <div
-                          key={itemNum}
-                          className="flex items-center justify-between px-4 py-3 rounded-xl border border-white/5 bg-surface-container-high/10 opacity-40 text-xs text-on-surface-variant select-none"
-                          title="Episode Terkunci"
-                        >
-                          <span>Episode {itemNum}</span>
-                          <span className="material-symbols-outlined text-xs">lock</span>
-                        </div>
-                      );
-                    }
-
                     return (
                       <Link
                         key={itemNum}
@@ -246,13 +234,17 @@ export default async function DracinWatchPage({ params }: WatchPageProps) {
                         className={`text-decoration-none flex items-center justify-between px-4 py-3 rounded-xl border transition-all text-xs font-bold cursor-pointer ${
                           isActive
                             ? 'bg-primary/20 border-primary text-primary'
-                            : 'bg-surface-container-high/40 hover:bg-primary/10 border-white/5 text-on-surface-variant hover:text-white'
+                            : isLocked
+                              ? 'bg-surface-container-high/20 hover:bg-primary/10 border-white/5 text-on-surface-variant/60 hover:text-white'
+                              : 'bg-surface-container-high/40 hover:bg-primary/10 border-white/5 text-on-surface-variant hover:text-white'
                         }`}
                       >
                         <span>Episode {itemNum}</span>
-                        {isActive && (
+                        {isActive ? (
                           <span className="w-1.5 h-1.5 rounded-full bg-primary animate-ping"></span>
-                        )}
+                        ) : isLocked ? (
+                          <span className="material-symbols-outlined text-[10px] text-on-surface-variant/50">lock</span>
+                        ) : null}
                       </Link>
                     );
                   })}

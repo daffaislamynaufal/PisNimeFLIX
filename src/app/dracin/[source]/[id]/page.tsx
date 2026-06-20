@@ -200,26 +200,20 @@ export default async function DracinDetailPage({ params }: DetailPageProps) {
               {drama.episodes.map((ep) => {
                 const epNum = ep.episodeNumber || ep.number;
                 
-                if (ep.locked) {
-                  return (
-                    <div
-                      key={epNum}
-                      className="relative bg-surface-container-high/20 border border-white/5 opacity-50 px-4 py-3 rounded-xl flex items-center justify-between text-on-surface-variant/60 select-none"
-                      title="Episode Terkunci"
-                    >
-                      <span className="font-bold text-xs">Eps {epNum}</span>
-                      <span className="material-symbols-outlined text-xs">lock</span>
-                    </div>
-                  );
-                }
-
                 return (
                   <Link
                     key={epNum}
                     href={`/dracin/${source}/${id}/watch/${epNum}`}
-                    className="text-decoration-none bg-surface-container-high/40 hover:bg-primary/20 border border-outline-variant/30 hover:border-primary/40 px-4 py-3 rounded-xl flex items-center justify-center text-center text-white hover:text-white transition-all font-bold text-xs active:scale-95 cursor-pointer"
+                    className={`text-decoration-none px-4 py-3 rounded-xl flex items-center justify-between transition-all font-bold text-xs active:scale-95 cursor-pointer border ${
+                      ep.locked
+                        ? 'bg-surface-container-high/20 border-white/5 text-on-surface-variant/60 hover:border-primary/20 hover:bg-primary/5 hover:text-white'
+                        : 'bg-surface-container-high/40 hover:bg-primary/20 border-outline-variant/30 hover:border-primary/40 text-white'
+                    }`}
                   >
-                    Eps {epNum}
+                    <span>Eps {epNum}</span>
+                    {ep.locked && (
+                      <span className="material-symbols-outlined text-[10px] text-on-surface-variant/50">lock</span>
+                    )}
                   </Link>
                 );
               })}

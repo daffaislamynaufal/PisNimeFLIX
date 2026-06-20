@@ -115,13 +115,18 @@ export async function getMovieIndoDetail(id: string): Promise<MovieDetail | null
 
     // Get Poster
     let cover = '';
-    const imgMatch = html.match(/"posterImg"\s*:\s*"([^"]+)"/);
-    if (imgMatch) {
-      cover = rewriteCoverUrl(imgMatch[1]);
+    const cleanedHtml = html.replace(/\\u0026/g, '&').replace(/\\u002f/g, '/').replace(/\\/g, '');
+    const coverMatch = cleanedHtml.match(/(https:\/\/www\.cutad\.web\.id\/api\/proxy\?u=[^"]+)/);
+    if (coverMatch) {
+      cover = rewriteCoverUrl(coverMatch[1]);
     } else {
-      // fallback
-      const posterSelector = $('img').first();
-      cover = rewriteCoverUrl(posterSelector.attr('src') || '');
+      const imgMatch = html.match(/"posterImg"\s*:\s*"([^"]+)"/);
+      if (imgMatch) {
+        cover = rewriteCoverUrl(imgMatch[1]);
+      } else {
+        const posterSelector = $('img').first();
+        cover = rewriteCoverUrl(posterSelector.attr('src') || '');
+      }
     }
 
     // Get Description
@@ -129,7 +134,6 @@ export async function getMovieIndoDetail(id: string): Promise<MovieDetail | null
 
     // Get Video URL from next_f payload
     let videoUrl = '';
-    const cleanedHtml = html.replace(/\\u0026/g, '&').replace(/\\u002f/g, '/').replace(/\\/g, '');
     const videoMatch = cleanedHtml.match(/(https:\/\/www\.cutad\.web\.id\/api\/proxy\?url=[^"]+)/);
     
     if (videoMatch) {

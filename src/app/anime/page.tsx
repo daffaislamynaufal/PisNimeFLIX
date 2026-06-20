@@ -82,6 +82,31 @@ export default function AnimeCatalogPage() {
   const getDisplayedAnime = () => {
     let list = [...animeList];
 
+    // Status filter for search results (since status is mapped to episodes field in api)
+    if (searchTrigger) {
+      list = list.filter((item) => {
+        const statusLower = (item.episodes || '').toLowerCase();
+        return statusLower.includes(activeTab.toLowerCase());
+      });
+    }
+
+    // Client-side genre heuristic (filtering by title keywords)
+    if (selectedGenre !== 'all') {
+      list = list.filter((item) => {
+        const titleLower = item.title.toLowerCase();
+        if (selectedGenre === 'action') {
+          return titleLower.includes('fight') || titleLower.includes('war') || titleLower.includes('battle') || titleLower.includes('hunter') || titleLower.includes('slayer') || titleLower.includes('tensei') || titleLower.includes('action') || titleLower.includes('clover') || titleLower.includes('kaisen') || titleLower.includes('piece') || titleLower.includes('hero');
+        } else if (selectedGenre === 'adventure') {
+          return titleLower.includes('adventure') || titleLower.includes('quest') || titleLower.includes('world') || titleLower.includes('journey') || titleLower.includes('gate') || titleLower.includes('online') || titleLower.includes('travel') || titleLower.includes('piece');
+        } else if (selectedGenre === 'fantasy') {
+          return titleLower.includes('fantasy') || titleLower.includes('isekai') || titleLower.includes('magic') || titleLower.includes('demon') || titleLower.includes('maou') || titleLower.includes('tensei') || titleLower.includes('god') || titleLower.includes('leveling') || titleLower.includes('level');
+        } else if (selectedGenre === 'romance') {
+          return titleLower.includes('love') || titleLower.includes('romance') || titleLower.includes('girlfriend') || titleLower.includes('boyfriend') || titleLower.includes('kanojo') || titleLower.includes('marriage') || titleLower.includes('kimochi') || titleLower.includes('ko') || titleLower.includes('date');
+        }
+        return true;
+      });
+    }
+
     // Client-side type filter based on title heuristic
     if (selectedType !== 'all') {
       list = list.filter((item) => {
@@ -112,7 +137,7 @@ export default function AnimeCatalogPage() {
         return getScore(b) - getScore(a);
       });
     } else if (selectedSort === 'popular') {
-      // Simple popular simulation using string length and episode count values
+      // Popular simulation using episodes count values
       list.sort((a, b) => {
         const aEp = parseInt(a.episodes || '0', 10) || 0;
         const bEp = parseInt(b.episodes || '0', 10) || 0;
@@ -124,6 +149,7 @@ export default function AnimeCatalogPage() {
   };
 
   const displayedAnime = getDisplayedAnime();
+  const isFiltered = selectedGenre !== 'all' || selectedType !== 'all' || selectedSort !== 'newest';
 
   return (
     <div className="min-h-screen px-margin-mobile md:px-margin-desktop py-8 max-w-container-max mx-auto relative overflow-hidden">
@@ -166,63 +192,99 @@ export default function AnimeCatalogPage() {
         </div>
 
         {/* Filter Section */}
-        <div className="w-full bg-surface-container-high/20 border border-outline-variant/20 rounded-2xl p-6 mb-8 backdrop-blur-md">
+        <div className="w-full bg-surface-container-high/20 border border-outline-variant/20 rounded-2xl p-6 mb-8 backdrop-blur-md flex flex-col gap-4">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="flex flex-col gap-2">
               <label className="font-label-sm text-on-surface-variant text-[10px] uppercase tracking-widest font-bold">Genre</label>
-              <select 
-                value={selectedGenre} 
-                onChange={(e) => setSelectedGenre(e.target.value)}
-                className="w-full bg-surface-container-high/40 border border-outline-variant/30 text-white rounded-xl py-2.5 px-3 focus:outline-none focus:border-primary backdrop-blur-md text-sm outline-none cursor-pointer"
-              >
-                <option value="all" className="bg-surface-container-highest text-white">Semua Genre</option>
-                <option value="action" className="bg-surface-container-highest text-white">Action</option>
-                <option value="adventure" className="bg-surface-container-highest text-white">Adventure</option>
-                <option value="fantasy" className="bg-surface-container-highest text-white">Fantasy</option>
-                <option value="romance" className="bg-surface-container-highest text-white">Romance</option>
-              </select>
+              <div className="relative">
+                <select 
+                  value={selectedGenre} 
+                  onChange={(e) => setSelectedGenre(e.target.value)}
+                  className="w-full bg-surface-container-high/40 border border-outline-variant/30 text-white rounded-xl py-2.5 pl-4 pr-10 focus:outline-none focus:border-primary backdrop-blur-md text-sm outline-none cursor-pointer appearance-none transition-all duration-300 hover:border-primary/50"
+                >
+                  <option value="all" className="bg-surface-container-highest text-white">Semua Genre</option>
+                  <option value="action" className="bg-surface-container-highest text-white">Action</option>
+                  <option value="adventure" className="bg-surface-container-highest text-white">Adventure</option>
+                  <option value="fantasy" className="bg-surface-container-highest text-white">Fantasy</option>
+                  <option value="romance" className="bg-surface-container-highest text-white">Romance</option>
+                </select>
+                <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant/60 pointer-events-none text-lg">
+                  unfold_more
+                </span>
+              </div>
             </div>
             
             <div className="flex flex-col gap-2">
               <label className="font-label-sm text-on-surface-variant text-[10px] uppercase tracking-widest font-bold">Status</label>
-              <select 
-                value={activeTab} 
-                onChange={(e) => handleTabChange(e.target.value as 'ongoing' | 'completed')}
-                className="w-full bg-surface-container-high/40 border border-outline-variant/30 text-white rounded-xl py-2.5 px-3 focus:outline-none focus:border-primary backdrop-blur-md text-sm outline-none cursor-pointer"
-              >
-                <option value="ongoing" className="bg-surface-container-highest text-white">Ongoing</option>
-                <option value="completed" className="bg-surface-container-highest text-white">Completed</option>
-              </select>
+              <div className="relative">
+                <select 
+                  value={activeTab} 
+                  onChange={(e) => handleTabChange(e.target.value as 'ongoing' | 'completed')}
+                  className="w-full bg-surface-container-high/40 border border-outline-variant/30 text-white rounded-xl py-2.5 pl-4 pr-10 focus:outline-none focus:border-primary backdrop-blur-md text-sm outline-none cursor-pointer appearance-none transition-all duration-300 hover:border-primary/50"
+                >
+                  <option value="ongoing" className="bg-surface-container-highest text-white">Ongoing</option>
+                  <option value="completed" className="bg-surface-container-highest text-white">Completed</option>
+                </select>
+                <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant/60 pointer-events-none text-lg">
+                  unfold_more
+                </span>
+              </div>
             </div>
 
             <div className="flex flex-col gap-2">
               <label className="font-label-sm text-on-surface-variant text-[10px] uppercase tracking-widest font-bold">Tipe</label>
-              <select 
-                value={selectedType}
-                onChange={(e) => setSelectedType(e.target.value)}
-                className="w-full bg-surface-container-high/40 border border-outline-variant/30 text-white rounded-xl py-2.5 px-3 focus:outline-none focus:border-primary backdrop-blur-md text-sm outline-none cursor-pointer"
-              >
-                <option value="all" className="bg-surface-container-highest text-white">Semua Tipe</option>
-                <option value="tv" className="bg-surface-container-highest text-white">TV Series</option>
-                <option value="movie" className="bg-surface-container-highest text-white">Movie</option>
-                <option value="ova" className="bg-surface-container-highest text-white">OVA</option>
-                <option value="special" className="bg-surface-container-highest text-white">Special</option>
-              </select>
+              <div className="relative">
+                <select 
+                  value={selectedType}
+                  onChange={(e) => setSelectedType(e.target.value)}
+                  className="w-full bg-surface-container-high/40 border border-outline-variant/30 text-white rounded-xl py-2.5 pl-4 pr-10 focus:outline-none focus:border-primary backdrop-blur-md text-sm outline-none cursor-pointer appearance-none transition-all duration-300 hover:border-primary/50"
+                >
+                  <option value="all" className="bg-surface-container-highest text-white">Semua Tipe</option>
+                  <option value="tv" className="bg-surface-container-highest text-white">TV Series</option>
+                  <option value="movie" className="bg-surface-container-highest text-white">Movie</option>
+                  <option value="ova" className="bg-surface-container-highest text-white">OVA</option>
+                  <option value="special" className="bg-surface-container-highest text-white">Special</option>
+                </select>
+                <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant/60 pointer-events-none text-lg">
+                  unfold_more
+                </span>
+              </div>
             </div>
 
             <div className="flex flex-col gap-2">
               <label className="font-label-sm text-on-surface-variant text-[10px] uppercase tracking-widest font-bold">Urutkan</label>
-              <select 
-                value={selectedSort}
-                onChange={(e) => setSelectedSort(e.target.value)}
-                className="w-full bg-surface-container-high/40 border border-outline-variant/30 text-white rounded-xl py-2.5 px-3 focus:outline-none focus:border-primary backdrop-blur-md text-sm outline-none cursor-pointer"
-              >
-                <option value="newest" className="bg-surface-container-highest text-white">Terbaru</option>
-                <option value="popular" className="bg-surface-container-highest text-white">Populer</option>
-                <option value="rating" className="bg-surface-container-highest text-white">Rating Terbaik</option>
-              </select>
+              <div className="relative">
+                <select 
+                  value={selectedSort}
+                  onChange={(e) => setSelectedSort(e.target.value)}
+                  className="w-full bg-surface-container-high/40 border border-outline-variant/30 text-white rounded-xl py-2.5 pl-4 pr-10 focus:outline-none focus:border-primary backdrop-blur-md text-sm outline-none cursor-pointer appearance-none transition-all duration-300 hover:border-primary/50"
+                >
+                  <option value="newest" className="bg-surface-container-highest text-white">Terbaru</option>
+                  <option value="popular" className="bg-surface-container-highest text-white">Populer</option>
+                  <option value="rating" className="bg-surface-container-highest text-white">Rating Terbaik</option>
+                </select>
+                <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant/60 pointer-events-none text-lg">
+                  unfold_more
+                </span>
+              </div>
             </div>
           </div>
+
+          {isFiltered && (
+            <div className="flex justify-end border-t border-white/5 pt-4">
+              <button
+                onClick={() => {
+                  setSelectedGenre('all');
+                  setSelectedType('all');
+                  setSelectedSort('newest');
+                }}
+                className="bg-primary/10 hover:bg-primary/20 border border-primary/30 text-primary font-bold text-xs py-2 px-4 rounded-xl flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-sm">filter_alt_off</span>
+                Hapus Filter
+              </button>
+            </div>
+          )}
         </div>
         {searchTrigger && (
           <div className="flex justify-between items-center border-b border-white/5 pb-4 mb-8">

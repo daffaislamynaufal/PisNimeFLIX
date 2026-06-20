@@ -77,12 +77,12 @@ export default async function ComicDetailPage({ params }: ComicDetailPageProps) 
         <div className="flex flex-col lg:flex-row gap-8 lg:gap-12 mb-12">
           {/* Cover Art Box */}
           <div className="w-full sm:w-64 flex-shrink-0 mx-auto lg:mx-0">
-            <div className="relative aspect-[3/4] rounded-2xl overflow-hidden border border-white/10 shadow-2xl bg-surface-container-high/40">
+            <div className="relative aspect-[2/3] rounded-2xl overflow-hidden border border-white/10 shadow-2xl bg-surface-container-high/40">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={getProxiedImageUrl(comic.image)}
                 alt={comic.title}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover object-top"
               />
             </div>
             
@@ -190,13 +190,13 @@ export default async function ComicDetailPage({ params }: ComicDetailPageProps) 
                     href={`/komik/${simSlug}`}
                     className="group bg-surface-container/30 border border-white/5 rounded-2xl overflow-hidden hover:border-primary/40 transition-all text-decoration-none flex flex-col hover:-translate-y-1"
                   >
-                    <div className="relative aspect-[3/4] overflow-hidden bg-surface-container-high/40">
+                    <div className="relative aspect-[2/3] overflow-hidden bg-surface-container-high/40">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={getProxiedImageUrl(item.image)}
                         alt={item.title}
                         loading="lazy"
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-500"
                         onError={(e) => {
                           (e.target as HTMLImageElement).src = '/asset/img/placeholder.jpg';
                         }}

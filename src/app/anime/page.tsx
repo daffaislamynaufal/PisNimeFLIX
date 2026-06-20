@@ -350,13 +350,13 @@ export default function AnimeCatalogPage() {
                 >
                   <div>
                     {/* Anime Poster Link */}
-                    <Link href={`/anime/${anime.animeId}`} className="relative aspect-[3/4] block overflow-hidden bg-surface-container-high/40">
+                    <Link href={`/anime/${anime.animeId}`} className="relative aspect-[2/3] block overflow-hidden bg-surface-container-high/40">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={anime.poster || '/placeholder.jpg'}
                         alt={anime.title}
                         loading="lazy"
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-500"
                         onError={(e) => {
                           (e.target as HTMLImageElement).src = '/placeholder.jpg';
                         }}

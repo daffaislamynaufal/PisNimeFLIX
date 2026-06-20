@@ -1,6 +1,9 @@
 import axios from 'axios';
 import * as cheerio from 'cheerio';
 import { getCutadCookie, rewriteCoverUrl } from './dracin';
+import fs from 'fs';
+import path from 'path';
+import os from 'os';
 
 const BASE_URL = 'https://www.cutad.web.id';
 
@@ -28,15 +31,102 @@ const movieDetailCache = new Map<string, CacheEntry<any>>();
 
 const DETAIL_TTL = 15 * 60 * 1000; // 15 minutes
 
-let cachedAllMovies: MovieItem[] | null = null;
-let cachedAllMoviesExpiry = 0;
-const ALL_MOVIES_TTL = 30 * 60 * 1000; // 30 minutes
+const RUNTIME_CACHE_FILE = path.join(os.tmpdir(), 'pisnime_movie_indo_cache.json');
+const BUILD_TIME_CACHE_FILE = path.join(process.cwd(), 'src', 'lib', 'movie_indo_cache.json');
+const CACHE_TTL = 60 * 60 * 1000; // 1 hour
 
-export async function getAllMovieIndo(): Promise<MovieItem[]> {
-  if (cachedAllMovies && Date.now() < cachedAllMoviesExpiry) {
-    return cachedAllMovies;
+interface LocalCache {
+  timestamp: number;
+  items: MovieItem[];
+}
+
+function readLocalCache(): LocalCache | null {
+  try {
+    // 1. Try runtime cache (/tmp)
+    if (fs.existsSync(RUNTIME_CACHE_FILE)) {
+      const data = fs.readFileSync(RUNTIME_CACHE_FILE, 'utf8');
+      return JSON.parse(data);
+    }
+    
+    // 2. Try build-time fallback cache (project directory)
+    if (fs.existsSync(BUILD_TIME_CACHE_FILE)) {
+      const data = fs.readFileSync(BUILD_TIME_CACHE_FILE, 'utf8');
+      return JSON.parse(data);
+    }
+  } catch (e) {
+    console.error('Error reading local cache file:', e);
+  }
+  return null;
+}
+
+function writeLocalCache(items: MovieItem[]) {
+  const data: LocalCache = {
+    timestamp: Date.now(),
+    items
+  };
+  
+  // Always write to runtime cache (/tmp)
+  try {
+    fs.writeFileSync(RUNTIME_CACHE_FILE, JSON.stringify(data), 'utf8');
+  } catch (e) {
+    console.error('Error writing runtime cache file:', e);
   }
 
+  // Also try writing to build-time cache file if we are running in a writable environment
+  if (process.env.NODE_ENV === 'development' || !process.env.VERCEL) {
+    try {
+      fs.writeFileSync(BUILD_TIME_CACHE_FILE, JSON.stringify(data), 'utf8');
+    } catch (e) {
+      // Ignore errors if read-only
+    }
+  }
+}
+
+let isRefreshing = false;
+
+async function refreshCacheInBackground() {
+  console.log('Refreshing movie-indo cache in background...');
+  const items = await fetchAllMovieIndoFromSource();
+  if (items.length > 0) {
+    writeLocalCache(items);
+    console.log(`Movie-indo cache updated successfully in background. Total items: ${items.length}`);
+  }
+}
+
+export async function getAllMovieIndo(): Promise<MovieItem[]> {
+  // 1. Read from local cache file
+  const cached = readLocalCache();
+
+  if (cached && cached.items && cached.items.length > 0) {
+    const age = Date.now() - cached.timestamp;
+    
+    // If cache is still fresh, return it
+    if (age < CACHE_TTL) {
+      return cached.items;
+    }
+
+    // If cache is stale (> 1 hour), trigger background refresh and return stale items instantly!
+    if (!isRefreshing) {
+      isRefreshing = true;
+      refreshCacheInBackground().catch(err => {
+        console.error('Error in background cache refresh:', err);
+      }).finally(() => {
+        isRefreshing = false;
+      });
+    }
+
+    return cached.items;
+  }
+
+  // 2. Fallback: If no cache exists, fetch synchronously (first visit ever)
+  const items = await fetchAllMovieIndoFromSource();
+  if (items.length > 0) {
+    writeLocalCache(items);
+  }
+  return items;
+}
+
+export async function fetchAllMovieIndoFromSource(): Promise<MovieItem[]> {
   const allItems: MovieItem[] = [];
 
   try {
@@ -50,7 +140,7 @@ export async function getAllMovieIndo(): Promise<MovieItem[]> {
         'Cookie': cookie,
         'Referer': BASE_URL
       },
-      timeout: 10000
+      timeout: 15000
     });
 
     const $ = cheerio.load(response.data);
@@ -99,7 +189,7 @@ export async function getAllMovieIndo(): Promise<MovieItem[]> {
               'Cookie': cookie,
               'Referer': BASE_URL
             },
-            timeout: 10000
+            timeout: 15000
           });
           
           const page$ = cheerio.load(res.data);
@@ -135,16 +225,9 @@ export async function getAllMovieIndo(): Promise<MovieItem[]> {
       }
     }
 
-    if (allItems.length > 0) {
-      cachedAllMovies = allItems;
-      cachedAllMoviesExpiry = Date.now() + ALL_MOVIES_TTL;
-    }
     return allItems;
   } catch (err: any) {
-    console.error('Error fetching all Movie Indo:', err.message);
-    if (cachedAllMovies) {
-      return cachedAllMovies;
-    }
+    console.error('Error fetching Movie Indo from source:', err.message);
     return [];
   }
 }

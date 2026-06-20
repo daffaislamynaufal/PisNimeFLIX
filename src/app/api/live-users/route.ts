@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { NextResponse } from 'next/server';
 
 // In-memory Map to track active visitor pings.
@@ -30,10 +32,25 @@ export async function GET(request: Request) {
     // Get the actual number of active users
     const realCount = activeUsers.size;
 
-    // Optional: Add a base offset to make the counter look more populated (e.g., real count + 42)
-    // Set to 0 if you want 100% pure real count.
-    const baseOffset = 25; 
-    const finalCount = realCount + baseOffset;
+    // Calculate a dynamic base count that fluctuates naturally depending on the hour of the day
+    const hour = new Date().getHours();
+    let baseCount = 1200;
+    
+    if (hour >= 18 && hour <= 23) {
+      baseCount = 1850; // Peak hours (evening)
+    } else if (hour >= 0 && hour <= 5) {
+      baseCount = 550;  // Late night / early morning
+    } else if (hour >= 6 && hour <= 11) {
+      baseCount = 1100; // Morning
+    } else {
+      baseCount = 1500; // Afternoon
+    }
+
+    // Add a tiny random fluctuation based on timestamp to make it change slightly in real-time
+    const secondSeed = Math.floor(Date.now() / 7000); // changes every 7 seconds
+    const pseudoRandomOffset = (secondSeed % 41) - 20; // range: -20 to +20
+
+    const finalCount = baseCount + pseudoRandomOffset + realCount;
 
     return NextResponse.json({
       onlineUsers: finalCount,

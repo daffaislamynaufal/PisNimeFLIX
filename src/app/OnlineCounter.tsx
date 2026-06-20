@@ -9,7 +9,7 @@ export default function OnlineCounter() {
     // Function to fetch the actual active user count from the backend API
     const fetchLiveUsers = async () => {
       try {
-        const res = await fetch('/api/live-users', { cache: 'no-store' });
+        const res = await fetch(`/api/live-users?t=${Date.now()}`, { cache: 'no-store' });
         if (res.ok) {
           const data = await res.json();
           if (typeof data.onlineUsers === 'number') {

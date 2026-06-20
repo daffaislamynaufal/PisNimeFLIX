@@ -10,6 +10,7 @@ PisNime Flix adalah platform streaming anime premium subtitle Indonesia yang dib
 - 📅 **Jadwal Rilis Mingguan**: Jadwal penayangan yang dikelompokkan secara dinamis per hari (Senin s.d. Minggu). Sistem mendeteksi hari lokal pengguna untuk menyoroti jadwal hari ini secara otomatis.
 - 🔍 **Pencarian & Filter Pintar**: Navigasi pencarian judul anime secara instan, dipadukan dengan panel penyaringan (Genre, Status Ongoing/Completed, Tipe, dan Urutan).
 - 📺 **Pemutar Video & Pilihan Resolusi**: Halaman tontonan video dengan integrasi pemutar (*embedded player*) pendukung beberapa pilihan kualitas video (360p, 480p, 720p) yang diparsing langsung dari server *cermin*.
+- 🎭 **Short Drama / Dracin**: Layanan nonton Chinese Short Drama (Dracin) gratis dari 12 platform terkemuka (DramaBox, ReelShort, dll.) lengkap dengan pemutar HLS.js custom, detail drama, dan episode playlist.
 - 📖 **Manga Coming Soon Page**: Halaman *maintenance* premium untuk fitur pembaca manga dengan status pengembangan fitur serta formulir langganan notifikasi email interaktif.
 
 ---
@@ -71,6 +72,7 @@ npm start
 │   ├── app/
 │   │   ├── anime/            # Katalog anime, filter/pencarian, dan detail info anime berdasarkan ID
 │   │   ├── api/              # API Endpoint lokal pendukung scraper
+│   │   ├── dracin/           # Katalog drama China (Short Drama), detail, streaming player HLS
 │   │   ├── manga/            # Halaman maintenance baca manga
 │   │   ├── schedule/         # Jadwal rilis mingguan dinamis
 │   │   ├── watch/            # Halaman streaming & pemutar video

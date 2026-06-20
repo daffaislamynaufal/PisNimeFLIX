@@ -60,13 +60,30 @@ export default async function DracinDetailPage({ params }: DetailPageProps) {
     const { source, id } = await params;
 
     let detailData: DramaDetail | null = null;
+    let fetchError: any = null;
     try {
       const headersList = await headers();
       const clientUA = headersList.get('user-agent') || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
 
       detailData = await getDracinDetail(source, id, clientUA) as any;
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error fetching drama details on SSR:', err);
+      fetchError = err;
+    }
+
+    if (fetchError) {
+      return (
+        <div className="p-8 max-w-2xl mx-auto bg-red-950/40 border border-red-500/30 rounded-2xl my-12 text-white">
+          <h2 className="text-xl font-bold text-red-500 mb-4 flex items-center gap-2">
+            <span className="material-symbols-outlined">error</span>
+            SSR Fetch Error Details
+          </h2>
+          <p className="font-semibold text-sm mb-2">Message: {fetchError.message}</p>
+          <pre className="p-4 bg-black/60 rounded-xl overflow-x-auto text-[10px] text-red-300 font-mono leading-relaxed max-h-96 whitespace-pre-wrap">
+            {fetchError.stack || 'No stack trace available'}
+          </pre>
+        </div>
+      );
     }
 
     if (!detailData) {
@@ -210,10 +227,17 @@ export default async function DracinDetailPage({ params }: DetailPageProps) {
       </div>
     );
   } catch (rootErr: any) {
-    try {
-      const fs = require('fs');
-      fs.writeFileSync('c:\\Users\\Administrator\\Downloads\\dapp\\error-log.txt', rootErr.message + '\n' + rootErr.stack);
-    } catch (_) {}
-    throw rootErr;
+    return (
+      <div className="p-8 max-w-2xl mx-auto bg-red-950/40 border border-red-500/30 rounded-2xl my-12 text-white">
+        <h2 className="text-xl font-bold text-red-500 mb-4 flex items-center gap-2">
+          <span className="material-symbols-outlined">error</span>
+          SSR Render/Execution Error
+        </h2>
+        <p className="font-semibold text-sm mb-2">Message: {rootErr.message}</p>
+        <pre className="p-4 bg-black/60 rounded-xl overflow-x-auto text-[10px] text-red-300 font-mono leading-relaxed max-h-96 whitespace-pre-wrap">
+          {rootErr.stack || 'No stack trace available'}
+        </pre>
+      </div>
+    );
   }
 }

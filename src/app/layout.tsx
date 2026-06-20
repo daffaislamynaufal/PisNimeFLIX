@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { DesktopNavbar, MobileNavbar } from "./Navbar";
-import HeaderSearch from "./HeaderSearch";
+import OnlineCounter from "./OnlineCounter";
 
 export const metadata: Metadata = {
   title: "PisNime Flix - Premium Anime Streaming",
@@ -33,8 +33,8 @@ export default function RootLayout({
               <DesktopNavbar />
             </div>
             <div className="flex items-center gap-6">
-              {/* Responsive Search Component */}
-              <HeaderSearch />
+              {/* Live Online Users Indicator */}
+              <OnlineCounter />
             </div>
           </div>
         </header>

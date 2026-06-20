@@ -1,4 +1,4 @@
-import { getEpisodeDetail, getMirrorIframe } from '@/lib/scraper';
+import { getEpisodeDetail } from '@/lib/scraper';
 import { notFound } from 'next/navigation';
 import WatchPlayer from './WatchPlayer';
 
@@ -14,43 +14,33 @@ export default async function AnimeWatchPage({ params }: WatchPageProps) {
     notFound();
   }
 
-  // Find the best initial streaming URL
-  let initialStreamingUrl = watchData.defaultStreamingUrl;
-  let initialQuality = '360p';
-  let initialProvider = 'default';
-
   const mirrors = watchData.mirrors || [];
 
   // Try to find 720p mega
   let targetMirror = mirrors.find(
     m => m.quality === '720p' && m.provider.trim().toLowerCase() === 'mega'
-  );
+  ) || null;
 
   // If not found, try any 720p mirror
   if (!targetMirror) {
-    targetMirror = mirrors.find(m => m.quality === '720p');
+    targetMirror = mirrors.find(m => m.quality === '720p') || null;
   }
 
   // If not found, try 480p mega
   if (!targetMirror) {
     targetMirror = mirrors.find(
       m => m.quality === '480p' && m.provider.trim().toLowerCase() === 'mega'
-    );
+    ) || null;
   }
 
   // If not found, try any 480p mirror
   if (!targetMirror) {
-    targetMirror = mirrors.find(m => m.quality === '480p');
+    targetMirror = mirrors.find(m => m.quality === '480p') || null;
   }
 
-  // Resolve the target mirror's iframe URL on the server-side
-  if (targetMirror) {
-    const resolvedUrl = await getMirrorIframe(targetMirror.content, id);
-    if (resolvedUrl) {
-      initialStreamingUrl = resolvedUrl;
-      initialQuality = targetMirror.quality;
-      initialProvider = targetMirror.provider;
-    }
+  // Fallback to first mirror if still not found
+  if (!targetMirror && mirrors.length > 0) {
+    targetMirror = mirrors[0];
   }
 
   return (
@@ -70,9 +60,7 @@ export default async function AnimeWatchPage({ params }: WatchPageProps) {
           {/* Responsive Embedded Video Player Client Component */}
           <WatchPlayer
             defaultStreamingUrl={watchData.defaultStreamingUrl}
-            initialStreamingUrl={initialStreamingUrl}
-            initialQuality={initialQuality}
-            initialProvider={initialProvider}
+            initialMirror={targetMirror}
             mirrors={mirrors}
             episodeId={id}
             title={watchData.title}

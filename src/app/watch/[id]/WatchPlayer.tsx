@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 interface MirrorItem {
   quality: string;
@@ -10,9 +10,7 @@ interface MirrorItem {
 
 interface WatchPlayerProps {
   defaultStreamingUrl: string;
-  initialStreamingUrl: string;
-  initialQuality: string;
-  initialProvider: string;
+  initialMirror: MirrorItem | null;
   mirrors: MirrorItem[];
   episodeId: string;
   title: string;
@@ -20,17 +18,15 @@ interface WatchPlayerProps {
 
 export default function WatchPlayer({
   defaultStreamingUrl,
-  initialStreamingUrl,
-  initialQuality,
-  initialProvider,
+  initialMirror,
   mirrors,
   episodeId,
   title
 }: WatchPlayerProps) {
-  const [currentSrc, setCurrentSrc] = useState(initialStreamingUrl);
+  const [currentSrc, setCurrentSrc] = useState('');
   const [loading, setLoading] = useState(false);
-  const [activeQuality, setActiveQuality] = useState<string>(initialQuality);
-  const [activeProvider, setActiveProvider] = useState<string>(initialProvider);
+  const [activeQuality, setActiveQuality] = useState<string>('360p');
+  const [activeProvider, setActiveProvider] = useState<string>('default');
 
   // Group mirrors by quality
   const groupedMirrors = mirrors.reduce((acc, mirror) => {
@@ -62,11 +58,13 @@ export default function WatchPlayer({
       if (result.src) {
         setCurrentSrc(result.src);
       } else {
-        alert('Gagal memuat mirror video ini. Silakan coba provider lain.');
+        alert('Gagal memuat mirror video ini. Silakan coba provider lain atau pemutar default.');
+        handleSelectDefault();
       }
     } catch (error) {
       console.error('Error switching mirror:', error);
-      alert('Terjadi kesalahan saat memuat server video.');
+      alert('Terjadi kesalahan saat memuat server video. Beralih ke pemutar default.');
+      handleSelectDefault();
     } finally {
       setLoading(false);
     }
@@ -77,6 +75,16 @@ export default function WatchPlayer({
     setActiveQuality('360p');
     setActiveProvider('default');
   };
+
+  // Resolve initial streaming URL on client mount / episode transition
+  useEffect(() => {
+    if (initialMirror) {
+      handleSelectMirror(initialMirror);
+    } else {
+      handleSelectDefault();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialMirror, episodeId, defaultStreamingUrl]);
 
   return (
     <div className="space-y-6">

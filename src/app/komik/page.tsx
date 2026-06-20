@@ -179,9 +179,26 @@ export default function KomikCatalogPage() {
 
         {/* Loading State */}
         {loading && (
-          <div className="min-h-[40vh] flex flex-col items-center justify-center gap-4">
-            <div className="w-12 h-12 rounded-full border-4 border-t-primary border-r-primary/30 border-b-primary/10 border-l-primary/30 animate-spin"></div>
-            <p className="text-on-surface-variant font-bold text-sm">Sedang memuat katalog komik...</p>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6 animate-pulse">
+            {Array.from({ length: 12 }).map((_, idx) => (
+              <div
+                key={idx}
+                className="bg-surface-container/30 border border-white/5 rounded-2xl overflow-hidden flex flex-col justify-between"
+              >
+                <div>
+                  <div className="relative aspect-[2/3] bg-white/5"></div>
+                  <div className="p-4 space-y-3">
+                    <div className="flex justify-between text-[10px] font-semibold">
+                      <div className="h-3 w-16 bg-white/10 rounded"></div>
+                    </div>
+                    <div className="h-4 w-5/6 bg-white/10 rounded"></div>
+                  </div>
+                </div>
+                <div className="px-4 pb-4 pt-1">
+                  <div className="h-8 w-full bg-white/5 rounded-xl"></div>
+                </div>
+              </div>
+            ))}
           </div>
         )}
 

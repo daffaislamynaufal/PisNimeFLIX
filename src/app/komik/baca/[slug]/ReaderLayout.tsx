@@ -210,7 +210,7 @@ export default function ReaderLayout({ chapterDetail, comicDetail, currentSlug }
             chapterDetail.images.map((imgUrl, index) => (
               <div 
                 key={index} 
-                className="w-full relative flex justify-center bg-zinc-950/45 min-h-[65vh] items-center border-b border-white/5"
+                className="w-full relative flex justify-center bg-zinc-950/45 aspect-[2/3] md:aspect-[5/7] items-center border-b border-white/5 overflow-hidden"
               >
                 {/* Loader Placeholder (covered when image loads) */}
                 <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none gap-2 text-on-surface-variant/20">
@@ -223,7 +223,7 @@ export default function ReaderLayout({ chapterDetail, comicDetail, currentSlug }
                   src={`/api/komik/image?url=${encodeURIComponent(imgUrl)}`}
                   alt={`Halaman ${index + 1}`}
                   loading="lazy"
-                  className="max-w-full h-auto object-contain select-none relative z-10"
+                  className="w-full h-full object-contain select-none relative z-10"
                   onError={(e) => {
                     console.error('Image load failed for URL:', imgUrl);
                   }}

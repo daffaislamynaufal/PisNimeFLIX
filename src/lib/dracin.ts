@@ -130,8 +130,18 @@ export async function getDracinCatalog(source: string, type: string, page: numbe
       items: rawItems.map((item: any) => mapDramaItem(item))
     };
   } else {
-    // Map other tabs to action=rank
-    const data = await fetchCutadAPI(mappedSource, 'rank', {}, clientUA);
+    // Determine the catalog action depending on the provider
+    let action = 'rank';
+    let queryParams: Record<string, string> = {};
+    
+    if (mappedSource === 'netshort') {
+      action = 'home';
+      queryParams = { size: '300' };
+    } else if (mappedSource === 'dotdrama') {
+      action = 'list';
+    }
+
+    const data = await fetchCutadAPI(mappedSource, action, queryParams, clientUA);
     
     // Fallback parser to support multiple data structures
     let rawItems: any[] = [];
@@ -145,6 +155,8 @@ export async function getDracinCatalog(source: string, type: string, page: numbe
       rawItems = data.items;
     } else if (Array.isArray(data.rows)) {
       rawItems = data.rows;
+    } else if (Array.isArray(data.dramas)) {
+      rawItems = data.dramas;
     } else if (data.data) {
       if (Array.isArray(data.data)) {
         rawItems = data.data;
@@ -152,6 +164,8 @@ export async function getDracinCatalog(source: string, type: string, page: numbe
         rawItems = data.data.items;
       } else if (Array.isArray(data.data.rows)) {
         rawItems = data.data.rows;
+      } else if (Array.isArray(data.data.dramas)) {
+        rawItems = data.data.dramas;
       }
     }
 

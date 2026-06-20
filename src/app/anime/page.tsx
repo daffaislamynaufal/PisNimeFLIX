@@ -224,27 +224,9 @@ export default function AnimeCatalogPage() {
             </div>
           </div>
         </div>
-
-        {/* Catalog Navigation Tabs */}
-        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-white/5 pb-4 mb-8">
-          <div className="flex flex-wrap gap-2">
-            {(['ongoing', 'completed'] as const).map((tab) => (
-              <button
-                key={tab}
-                onClick={() => handleTabChange(tab)}
-                className={`px-5 py-2.5 rounded-xl font-bold text-xs capitalize transition-all border-none cursor-pointer ${
-                  activeTab === tab && !searchTrigger
-                    ? 'primary-gradient text-white shadow-lg shadow-primary/20 scale-105'
-                    : 'bg-surface-container/40 text-on-surface-variant hover:text-white hover:bg-surface-container/80'
-                }`}
-              >
-                {tab === 'ongoing' ? 'Anime Ongoing' : 'Anime Completed'}
-              </button>
-            ))}
-          </div>
-
-          {searchTrigger && (
-            <div className="bg-primary/10 border border-primary/20 px-4 py-2 rounded-xl flex items-center gap-2 text-xs text-primary font-semibold">
+        {searchTrigger && (
+          <div className="flex justify-between items-center border-b border-white/5 pb-4 mb-8">
+            <div className="bg-primary/10 border border-primary/20 px-4 py-2 rounded-xl flex items-center gap-2 text-xs text-primary font-semibold font-body-md">
               Hasil pencarian untuk: &quot;{searchTrigger}&quot;
               <button
                 onClick={() => {
@@ -257,8 +239,8 @@ export default function AnimeCatalogPage() {
                 <span className="material-symbols-outlined text-sm">close</span>
               </button>
             </div>
-          )}
-        </div>
+          </div>
+        )}
 
         {/* Loading State */}
         {loading && (

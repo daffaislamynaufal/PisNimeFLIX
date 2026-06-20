@@ -201,8 +201,8 @@ export async function getDracinDetail(source: string, id: string, clientUA?: str
 
   const chapters = drama.chapters || drama.episodes || drama.rows || [];
   const episodes = chapters.map((ch: any) => {
-    const epNum = ch.episode || ch.episodeNumber || ch.number || 1;
-    const chId = ch.chapter_id || ch.id || ch.chapterId || '';
+    const epNum = ch.episode || ch.episodeNumber || ch.episodeNo || ch.episode_no || ch.number || 1;
+    const chId = ch.chapter_id || ch.id || ch.chapterId || ch.episodeNo || '';
     const videoFakeId = `${id}::${drama.bookId || drama.id || ''}::${chId}`;
     return {
       episodeNumber: epNum,
@@ -260,8 +260,8 @@ export async function getDracinEpisodeStream(source: string, id: string, epNum: 
     chapters = rawChapters;
     
     const episodes = rawChapters.map((ch: any) => {
-      const epNumVal = ch.episode || ch.episodeNumber || ch.number || 1;
-      const chId = ch.chapter_id || ch.id || ch.chapterId || '';
+      const epNumVal = ch.episode || ch.episodeNumber || ch.episodeNo || ch.episode_no || ch.number || 1;
+      const chId = ch.chapter_id || ch.id || ch.chapterId || ch.episodeNo || '';
       return {
         episodeNumber: epNumVal,
         number: epNumVal,
@@ -288,21 +288,36 @@ export async function getDracinEpisodeStream(source: string, id: string, epNum: 
     });
   }
 
-  const chapter = chapters.find((ch: any) => ch.episode === epNum);
+  const chapter = chapters.find((ch: any) => (ch.episode || ch.episodeNo || ch.episodeNumber) === epNum);
   if (!chapter) {
     throw new Error(`Episode ${epNum} not found`);
   }
 
-  const chId = chapter.chapter_id || chapter.id || chapter.chapterId || '';
+  const chId = chapter.chapter_id || chapter.id || chapter.chapterId || chapter.episodeNo || String(epNum);
 
-  const watchData = await fetchCutadAPI(mappedSource, 'watch', {
-    bookId,
-    chapterId: chId,
-    episode: '1',
-    filteredTitle: id
-  }, clientUA);
+  // Group endpoints logic depending on the provider API structure
+  let watchData;
+  if (mappedSource === 'reelshort' || mappedSource === 'freereels' || mappedSource === 'dotdrama') {
+    watchData = await fetchCutadAPI(mappedSource, 'watch', {
+      bookId,
+      chapterId: chId,
+      episode: '1',
+      filteredTitle: id
+    }, clientUA);
+  } else if (mappedSource === 'meloshort') {
+    watchData = await fetchCutadAPI(mappedSource, 'episode_video', {
+      dramaId: id,
+      chapterId: chId
+    }, clientUA);
+  } else {
+    // For dramarush (DramaBox) and standard Group B platforms
+    watchData = await fetchCutadAPI(mappedSource, 'episode_video', {
+      id: id,
+      ep: String(epNum)
+    }, clientUA);
+  }
 
-  const relativeM3u8Url = watchData.data?.url;
+  const relativeM3u8Url = watchData.url || watchData.data?.url || watchData.data || '';
   if (!relativeM3u8Url) {
     throw new Error('Watch URL not found in API response');
   }

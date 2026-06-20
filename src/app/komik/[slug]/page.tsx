@@ -35,16 +35,16 @@ export default async function ComicDetailPage({ params }: ComicDetailPageProps) 
 
   const comic = data;
 
-  const getTypeBadgeColor = (type: string) => {
-    const t = type.toLowerCase();
+  const getTypeBadgeColor = (type: string | undefined) => {
+    const t = (type || '').toLowerCase();
     if (t === 'manga') return 'text-cyan-400 bg-cyan-500/10 border-cyan-500/30';
     if (t === 'manhwa') return 'text-pink-400 bg-pink-500/10 border-pink-500/30';
     if (t === 'manhua') return 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30';
     return 'text-primary bg-primary/10 border-primary/30';
   };
 
-  const getStatusBadgeColor = (status: string) => {
-    const s = status.toLowerCase();
+  const getStatusBadgeColor = (status: string | undefined) => {
+    const s = (status || '').toLowerCase();
     if (s.includes('ongoing') || s.includes('berjalan')) {
       return 'text-amber-400 bg-amber-500/10 border-amber-500/30';
     }
@@ -101,11 +101,11 @@ export default async function ComicDetailPage({ params }: ComicDetailPageProps) 
           {/* Info Details Box */}
           <div className="flex-grow">
             <div className="flex flex-wrap items-center gap-3 mb-3">
-              <span className={`px-3 py-1 rounded-md text-[10px] font-extrabold tracking-wider border uppercase ${getTypeBadgeColor(comic.metadata.type)}`}>
-                {comic.metadata.type || 'Manga'}
+              <span className={`px-3 py-1 rounded-md text-[10px] font-extrabold tracking-wider border uppercase ${getTypeBadgeColor(comic.metadata?.type)}`}>
+                {comic.metadata?.type || 'Manga'}
               </span>
-              <span className={`px-3 py-1 rounded-md text-[10px] font-extrabold tracking-wider border uppercase ${getStatusBadgeColor(comic.metadata.status)}`}>
-                {comic.metadata.status || 'Ongoing'}
+              <span className={`px-3 py-1 rounded-md text-[10px] font-extrabold tracking-wider border uppercase ${getStatusBadgeColor(comic.metadata?.status)}`}>
+                {comic.metadata?.status || 'Ongoing'}
               </span>
             </div>
 
@@ -120,22 +120,22 @@ export default async function ComicDetailPage({ params }: ComicDetailPageProps) 
             )}
 
             {/* Metadata Table Grid */}
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-y-4 gap-x-6 bg-surface-container/20 border border-white/5 rounded-2xl p-5 mb-6 backdrop-blur-sm">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-y-4 gap-x-6 bg-surface-container/20 border border-white/5 rounded-2xl p-5 mb-6 backdrop-blur-md">
               <div>
                 <span className="text-[10px] text-on-surface-variant/60 font-semibold block mb-1">Pengarang</span>
-                <span className="text-xs text-white font-bold">{comic.metadata.author || 'Unknown'}</span>
+                <span className="text-xs text-white font-bold">{comic.metadata?.author || 'Unknown'}</span>
               </div>
               <div>
                 <span className="text-[10px] text-on-surface-variant/60 font-semibold block mb-1">Arah Baca</span>
-                <span className="text-xs text-white font-bold">{comic.metadata.reading_direction || 'Kiri ke Kanan'}</span>
+                <span className="text-xs text-white font-bold">{comic.metadata?.reading_direction || 'Kiri ke Kanan'}</span>
               </div>
               <div>
                 <span className="text-[10px] text-on-surface-variant/60 font-semibold block mb-1">Konsep</span>
-                <span className="text-xs text-white font-bold">{comic.metadata.concept || 'Fantasi'}</span>
+                <span className="text-xs text-white font-bold">{comic.metadata?.concept || 'Fantasi'}</span>
               </div>
               <div>
                 <span className="text-[10px] text-on-surface-variant/60 font-semibold block mb-1">Peringkat Umur</span>
-                <span className="text-xs text-white font-bold">{comic.metadata.age_rating || 'Semua Umur'}</span>
+                <span className="text-xs text-white font-bold">{comic.metadata?.age_rating || 'Semua Umur'}</span>
               </div>
             </div>
 

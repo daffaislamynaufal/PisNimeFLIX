@@ -3,34 +3,29 @@
 import { useState, useEffect } from 'react';
 
 export default function OnlineCounter() {
-  const [onlineCount, setOnlineCount] = useState(1284);
+  const [onlineCount, setOnlineCount] = useState(26);
 
   useEffect(() => {
-    // Generate initial count based on current hour to make it realistic
-    const hour = new Date().getHours();
-    let baseCount = 1200;
-    
-    if (hour >= 18 && hour <= 23) {
-      baseCount = 1850; // Peak hours (evening)
-    } else if (hour >= 0 && hour <= 5) {
-      baseCount = 550;  // Late night / early morning
-    } else if (hour >= 6 && hour <= 11) {
-      baseCount = 1100; // Morning
-    } else {
-      baseCount = 1500; // Afternoon
-    }
-    
-    const randomOffset = Math.floor(Math.random() * 100) - 50;
-    setOnlineCount(baseCount + randomOffset);
+    // Function to fetch the actual active user count from the backend API
+    const fetchLiveUsers = async () => {
+      try {
+        const res = await fetch('/api/live-users', { cache: 'no-store' });
+        if (res.ok) {
+          const data = await res.json();
+          if (typeof data.onlineUsers === 'number') {
+            setOnlineCount(data.onlineUsers);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fetch live users:', err);
+      }
+    };
 
-    // Fluctuate count slightly every 7 seconds
-    const interval = setInterval(() => {
-      setOnlineCount((prev) => {
-        const change = Math.floor(Math.random() * 13) - 6; // -6 to +6
-        const newCount = prev + change;
-        return newCount < 100 ? 100 : newCount;
-      });
-    }, 7000);
+    // Initial fetch on mount
+    fetchLiveUsers();
+
+    // Ping the backend API every 15 seconds to keep the session alive and update the counter
+    const interval = setInterval(fetchLiveUsers, 15000);
 
     return () => clearInterval(interval);
   }, []);

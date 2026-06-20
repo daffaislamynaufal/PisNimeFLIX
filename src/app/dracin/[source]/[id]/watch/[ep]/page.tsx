@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation';
 import { headers } from 'next/headers';
 import DracinPlayer from '../../../../components/DracinPlayer';
 
-const ANICHIN_API_KEY = process.env.ANICHIN_API_KEY || 'TRIAL-ANICHIN-2026';
+import { getDracinDetail, getDracinEpisodeStream } from '@/lib/dracin';
 
 interface EpisodeItem {
   episodeNumber: number;
@@ -48,16 +48,8 @@ export async function generateMetadata({ params }: WatchPageProps) {
     const headersList = await headers();
     const clientUA = headersList.get('user-agent') || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
 
-    const res = await fetch(`https://api.anichin.bio/${source}/detail?id=${id}`, {
-      headers: {
-        'X-API-Key': ANICHIN_API_KEY,
-        'User-Agent': clientUA
-      },
-      cache: 'no-store'
-    });
-    if (!res.ok) return { title: 'Nonton Drama - PisNime Flix' };
-    const rawData = await res.json();
-    const drama = rawData.data || rawData;
+    const drama = await getDracinDetail(source, id, clientUA);
+    if (!drama) return { title: 'Nonton Drama - PisNime Flix' };
     
     const displayTitle = drama.title || `Drama #${id}`;
     
@@ -86,30 +78,11 @@ export default async function DracinWatchPage({ params }: WatchPageProps) {
     const clientUA = headersList.get('user-agent') || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
 
     // 1. Fetch details for metadata and playlist sidebar
-    const detailRes = await fetch(`https://api.anichin.bio/${source}/detail?id=${id}`, {
-      headers: {
-        'X-API-Key': ANICHIN_API_KEY,
-        'User-Agent': clientUA
-      },
-      cache: 'no-store'
-    });
-
-    if (detailRes.ok) {
-      const rawData = await detailRes.json();
-      drama = rawData.data || rawData;
-    }
+    drama = await getDracinDetail(source, id, clientUA) as any;
 
     // 2. Fetch specific episode streaming data
-    const epRes = await fetch(`https://api.anichin.bio/${source}/episode?id=${id}&ep=${epNum}`, {
-      headers: {
-        'X-API-Key': ANICHIN_API_KEY,
-        'User-Agent': clientUA
-      },
-      cache: 'no-store'
-    });
-
-    if (epRes.ok) {
-      epStream = await epRes.json();
+    if (drama) {
+      epStream = await getDracinEpisodeStream(source, id, epNum, clientUA) as any;
     }
   } catch (err) {
     console.error('Error fetching stream data on SSR:', err);

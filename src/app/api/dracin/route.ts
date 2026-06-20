@@ -1,12 +1,7 @@
 import { NextResponse } from 'next/server';
+import { getDracinCatalog, getDracinDetail, getDracinEpisodeStream, SOURCE_MAP } from '@/lib/dracin';
 
-const ANICHIN_API_KEY = process.env.ANICHIN_API_KEY || 'TRIAL-ANICHIN-2026';
-
-const ALLOWED_SOURCES = [
-  'dramabox', 'reelshort', 'shortmax', 'netshort', 'goodshort',
-  'dramawave', 'flickreels', 'freereels', 'idrama', 'dramanova',
-  'starshort', 'dramabite'
-];
+const ALLOWED_SOURCES = Object.keys(SOURCE_MAP);
 
 const ALLOWED_TYPES = [
   'trending', 'foryou', 'hotrank', 'recommended', 'search', 'detail', 'episode'
@@ -27,27 +22,19 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Invalid query type.' }, { status: 400 });
     }
     
-    // Construct external target URL
-    let targetUrl = `https://api.anichin.bio/${sourceParam}/${typeParam}`;
-    
-    if (typeParam === 'foryou') {
-      const page = parseInt(searchParams.get('page') || '1', 10);
-      if (isNaN(page) || page <= 0) {
-        return NextResponse.json({ error: 'Invalid page parameter.' }, { status: 400 });
-      }
-      targetUrl += `?page=${page}`;
-    } else if (typeParam === 'search') {
-      const q = searchParams.get('q') || '';
-      if (!q) {
-        return NextResponse.json({ error: 'Query parameter q is required.' }, { status: 400 });
-      }
-      targetUrl += `?q=${encodeURIComponent(q)}`;
-    } else if (typeParam === 'detail') {
+    const clientUserAgent = request.headers.get('user-agent') || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+
+    let resultData;
+
+    if (typeParam === 'detail') {
       const id = searchParams.get('id') || '';
       if (!id || !/^[a-zA-Z0-9_-]+$/.test(id)) {
         return NextResponse.json({ error: 'Invalid drama id.' }, { status: 400 });
       }
-      targetUrl += `?id=${id}`;
+      resultData = await getDracinDetail(sourceParam, id, clientUserAgent);
+      if (!resultData) {
+        return NextResponse.json({ error: 'Drama not found' }, { status: 404 });
+      }
     } else if (typeParam === 'episode') {
       const id = searchParams.get('id') || '';
       const ep = parseInt(searchParams.get('ep') || '1', 10);
@@ -57,31 +44,16 @@ export async function GET(request: Request) {
       if (isNaN(ep) || ep <= 0) {
         return NextResponse.json({ error: 'Invalid episode number.' }, { status: 400 });
       }
-      targetUrl += `?id=${id}&ep=${ep}`;
+      resultData = await getDracinEpisodeStream(sourceParam, id, ep, clientUserAgent);
+    } else {
+      // Catalog: trending, foryou, hotrank, recommended, search
+      const page = parseInt(searchParams.get('page') || '1', 10);
+      const q = searchParams.get('q') || '';
+      const pageVal = isNaN(page) || page <= 0 ? 1 : page;
+      resultData = await getDracinCatalog(sourceParam, typeParam, pageVal, q, clientUserAgent);
     }
     
-    // Get incoming User-Agent header and forward it
-    const clientUserAgent = request.headers.get('user-agent') || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
-
-    // Fetch from external api
-    const response = await fetch(targetUrl, {
-      method: 'GET',
-      headers: {
-        'X-API-Key': ANICHIN_API_KEY,
-        'User-Agent': clientUserAgent
-      },
-      cache: 'no-store'
-    });
-    
-    if (!response.ok) {
-      return NextResponse.json(
-        { error: `External API responded with status ${response.status}` },
-        { status: response.status }
-      );
-    }
-    
-    const data = await response.json();
-    return NextResponse.json(data, {
+    return NextResponse.json(resultData, {
       headers: {
         'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
         'Pragma': 'no-cache',

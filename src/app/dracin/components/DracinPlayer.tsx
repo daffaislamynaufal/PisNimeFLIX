@@ -23,9 +23,12 @@ export default function DracinPlayer({ videoUrl }: DracinPlayerProps) {
 
       if (Hls.isSupported()) {
         hlsInstance = new Hls({
-          maxMaxBufferLength: 10,
           enableWorker: true,
-          lowLatencyMode: true,
+          lowLatencyMode: false,
+          maxBufferLength: 30, // Buffer up to 30 seconds ahead
+          maxMaxBufferLength: 60, // Maximum buffer up to 60 seconds
+          maxBufferSize: 60 * 1024 * 1024, // Limit buffer size to 60MB to save memory
+          progressive: true,
         });
         hlsInstance.loadSource(videoUrl);
         hlsInstance.attachMedia(currentVideo);

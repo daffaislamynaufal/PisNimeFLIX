@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { headers } from 'next/headers';
 
-const ANICHIN_API_KEY = process.env.ANICHIN_API_KEY || 'TRIAL-ANICHIN-2026';
+import { getDracinDetail } from '@/lib/dracin';
 
 interface EpisodeItem {
   episodeNumber: number;
@@ -41,22 +41,8 @@ export async function generateMetadata({ params }: DetailPageProps) {
     const headersList = await headers();
     const clientUA = headersList.get('user-agent') || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
 
-    const res = await fetch(`https://api.anichin.bio/${source}/detail?id=${id}`, {
-      headers: {
-        'X-API-Key': ANICHIN_API_KEY,
-        'User-Agent': clientUA
-      },
-      cache: 'no-store'
-    });
-    
-    if (!res.ok) return { title: 'Detail Drama - PisNime Flix' };
-    
-    const rawData = await res.json();
-    const data = rawData.data || rawData;
-    
-    if (!data) {
-      return { title: 'Drama Tidak Ditemukan - PisNime Flix' };
-    }
+    const data = await getDracinDetail(source, id, clientUA);
+    if (!data) return { title: 'Detail Drama - PisNime Flix' };
     
     const displayTitle = data.title || `Drama #${id}`;
     
@@ -77,17 +63,7 @@ export default async function DracinDetailPage({ params }: DetailPageProps) {
     const headersList = await headers();
     const clientUA = headersList.get('user-agent') || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
 
-    const res = await fetch(`https://api.anichin.bio/${source}/detail?id=${id}`, {
-      headers: {
-        'X-API-Key': ANICHIN_API_KEY,
-        'User-Agent': clientUA
-      },
-      cache: 'no-store'
-    });
-    if (res.ok) {
-      const rawData = await res.json();
-      detailData = rawData.data || rawData;
-    }
+    detailData = await getDracinDetail(source, id, clientUA) as any;
   } catch (err) {
     console.error('Error fetching drama details on SSR:', err);
   }

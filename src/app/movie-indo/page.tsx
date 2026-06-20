@@ -79,7 +79,7 @@ export default async function MovieIndoPage({ searchParams }: CatalogPageProps) 
         ) : (
           <>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
-              {items.map((movie) => (
+              {items.map((movie, index) => (
                 <Link
                   key={movie.id}
                   href={`/movie-indo/${movie.id}`}
@@ -91,7 +91,8 @@ export default async function MovieIndoPage({ searchParams }: CatalogPageProps) 
                       src={movie.cover || '/placeholder.jpg'}
                       alt={movie.title}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
-                      loading="lazy"
+                      loading={index < 6 ? 'eager' : 'lazy'}
+                      {...(index < 6 ? { fetchPriority: 'high' as any } : {})}
                     />
                     
                     <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/10 to-transparent opacity-60 group-hover:opacity-85 transition-opacity"></div>

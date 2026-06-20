@@ -103,7 +103,9 @@ export async function fetchCutadAPI(provider: string, action: string, queryParam
     throw new Error(`Failed to fetch from cutad.web.id: ${response.statusText}`);
   }
 
-  return await response.json();
+  const rawText = await response.text();
+  const normalizedText = rawText.replace(/:\s*(\d{16,})\b/g, ': "$1"');
+  return JSON.parse(normalizedText);
 }
 
 // In-memory cache for API requests
@@ -278,7 +280,12 @@ export async function getDracinDetail(source: string, id: string, clientUA?: str
   }
 
   const mappedSource = SOURCE_MAP[source] || source;
-  const data = await fetchCutadAPI(mappedSource, 'detail', { id }, clientUA);
+  const data = await fetchCutadAPI(mappedSource, 'detail', {
+    id,
+    dramaId: id,
+    bookId: id,
+    filteredTitle: id
+  }, clientUA);
   
   const drama = data.data || data;
   if (!drama) return null;
@@ -334,7 +341,12 @@ export async function getDracinEpisodeStream(source: string, id: string, epNum: 
       };
     });
   } else {
-    const detail = await fetchCutadAPI(mappedSource, 'detail', { id }, clientUA);
+    const detail = await fetchCutadAPI(mappedSource, 'detail', {
+      id,
+      dramaId: id,
+      bookId: id,
+      filteredTitle: id
+    }, clientUA);
     const drama = detail.data || detail;
     if (!drama) {
       throw new Error('Drama detail not found');
@@ -386,18 +398,25 @@ export async function getDracinEpisodeStream(source: string, id: string, epNum: 
       bookId,
       chapterId: chId,
       episode: '1',
-      filteredTitle: id
+      filteredTitle: id,
+      id,
+      dramaId: id
     }, clientUA);
   } else if (mappedSource === 'meloshort') {
     watchData = await fetchCutadAPI(mappedSource, 'episode_video', {
       dramaId: id,
+      bookId: id,
+      id,
       chapterId: chId
     }, clientUA);
   } else {
     // For dramarush (DramaBox) and standard Group B platforms
     watchData = await fetchCutadAPI(mappedSource, 'episode_video', {
       id: id,
-      ep: String(epNum)
+      dramaId: id,
+      bookId: id,
+      ep: String(epNum),
+      chapterId: chId
     }, clientUA);
   }
 

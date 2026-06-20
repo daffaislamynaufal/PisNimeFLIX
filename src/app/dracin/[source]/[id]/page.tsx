@@ -56,156 +56,164 @@ export async function generateMetadata({ params }: DetailPageProps) {
 }
 
 export default async function DracinDetailPage({ params }: DetailPageProps) {
-  const { source, id } = await params;
-
-  let detailData: DramaDetail | null = null;
   try {
-    const headersList = await headers();
-    const clientUA = headersList.get('user-agent') || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+    const { source, id } = await params;
 
-    detailData = await getDracinDetail(source, id, clientUA) as any;
-  } catch (err) {
-    console.error('Error fetching drama details on SSR:', err);
-  }
+    let detailData: DramaDetail | null = null;
+    try {
+      const headersList = await headers();
+      const clientUA = headersList.get('user-agent') || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
 
-  if (!detailData) {
-    notFound();
-  }
+      detailData = await getDracinDetail(source, id, clientUA) as any;
+    } catch (err) {
+      console.error('Error fetching drama details on SSR:', err);
+    }
 
-  const drama = detailData;
-  const dramaTitle = drama.title || `Drama #${id}`;
-  const coverUrl = drama.posterImg || drama.cover || '/placeholder.jpg';
-  const displaySource = source.charAt(0).toUpperCase() + source.slice(1);
-  const statusLabel = drama.isCompleted === '1' ? 'Tamat' : 'Ongoing';
-  const totalEps = drama.totalEpisodes || drama.episodes?.length || 0;
+    if (!detailData) {
+      notFound();
+    }
 
-  return (
-    <div className="min-h-screen relative py-8 px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto overflow-hidden">
-      {/* Blurred Backdrop */}
-      <div 
-        className="absolute inset-0 bg-cover bg-center blur-[80px] opacity-10 pointer-events-none"
-        style={{ backgroundImage: `url(${coverUrl})` }}
-      ></div>
+    const drama = detailData;
+    const dramaTitle = drama.title || `Drama #${id}`;
+    const coverUrl = drama.posterImg || drama.cover || '/placeholder.jpg';
+    const displaySource = source.charAt(0).toUpperCase() + source.slice(1);
+    const statusLabel = drama.isCompleted === '1' ? 'Tamat' : 'Ongoing';
+    const totalEps = drama.totalEpisodes || drama.episodes?.length || 0;
 
-      {/* Decorative Glow Orbs */}
-      <div className="absolute top-1/4 -left-40 w-96 h-96 bg-primary/20 rounded-full blur-[120px] pointer-events-none"></div>
-      <div className="absolute bottom-1/4 -right-40 w-96 h-96 bg-secondary/15 rounded-full blur-[120px] pointer-events-none"></div>
+    return (
+      <div className="min-h-screen relative py-8 px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto overflow-hidden">
+        {/* Blurred Backdrop */}
+        <div 
+          className="absolute inset-0 bg-cover bg-center blur-[80px] opacity-10 pointer-events-none"
+          style={{ backgroundImage: `url(${coverUrl})` }}
+        ></div>
 
-      <div className="relative z-10">
-        {/* Breadcrumbs */}
-        <div className="flex flex-wrap items-center gap-2 text-xs text-on-surface-variant/80 mb-8">
-          <Link href="/" className="text-decoration-none text-inherit hover:text-white transition-colors">Beranda</Link>
-          <span className="material-symbols-outlined text-[10px]">chevron_right</span>
-          <Link href="/dracin" className="text-decoration-none text-inherit hover:text-white transition-colors">Katalog Dracin</Link>
-          <span className="material-symbols-outlined text-[10px]">chevron_right</span>
-          <span className="text-primary font-bold">{dramaTitle}</span>
-        </div>
+        {/* Decorative Glow Orbs */}
+        <div className="absolute top-1/4 -left-40 w-96 h-96 bg-primary/20 rounded-full blur-[120px] pointer-events-none"></div>
+        <div className="absolute bottom-1/4 -right-40 w-96 h-96 bg-secondary/15 rounded-full blur-[120px] pointer-events-none"></div>
 
-        {/* Drama Info Header */}
-        <div className="flex flex-col lg:flex-row gap-8 lg:gap-12 mb-12">
-          {/* Cover Art Box */}
-          <div className="w-full sm:w-64 flex-shrink-0 mx-auto lg:mx-0">
-            <div className="relative aspect-[2/3] rounded-2xl overflow-hidden border border-white/10 shadow-2xl bg-surface-container-high/40">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={coverUrl}
-                alt={dramaTitle}
-                className="w-full h-full object-cover object-top"
-              />
+        <div className="relative z-10">
+          {/* Breadcrumbs */}
+          <div className="flex flex-wrap items-center gap-2 text-xs text-on-surface-variant/80 mb-8">
+            <Link href="/" className="text-decoration-none text-inherit hover:text-white transition-colors">Beranda</Link>
+            <span className="material-symbols-outlined text-[10px]">chevron_right</span>
+            <Link href="/dracin" className="text-decoration-none text-inherit hover:text-white transition-colors">Katalog Dracin</Link>
+            <span className="material-symbols-outlined text-[10px]">chevron_right</span>
+            <span className="text-primary font-bold">{dramaTitle}</span>
+          </div>
+
+          {/* Drama Info Header */}
+          <div className="flex flex-col lg:flex-row gap-8 lg:gap-12 mb-12">
+            {/* Cover Art Box */}
+            <div className="w-full sm:w-64 flex-shrink-0 mx-auto lg:mx-0">
+              <div className="relative aspect-[2/3] rounded-2xl overflow-hidden border border-white/10 shadow-2xl bg-surface-container-high/40">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={coverUrl}
+                  alt={dramaTitle}
+                  className="w-full h-full object-cover object-top"
+                />
+              </div>
+              
+              {/* Quick Watch Button */}
+              {drama.episodes && drama.episodes.length > 0 && !drama.episodes[0].locked && (
+                <Link
+                  href={`/dracin/${source}/${id}/watch/${drama.episodes[0].episodeNumber || drama.episodes[0].number || 1}`}
+                  className="text-decoration-none mt-4 w-full primary-gradient py-3.5 rounded-xl font-bold text-xs text-white text-center flex items-center justify-center gap-2 shadow-lg shadow-primary/20 hover:opacity-90 active:scale-95 transition-all border-none cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-sm">play_arrow</span>
+                  Nonton Episode 1
+                </Link>
+              )}
             </div>
-            
-            {/* Quick Watch Button */}
-            {drama.episodes && drama.episodes.length > 0 && !drama.episodes[0].locked && (
-              <Link
-                href={`/dracin/${source}/${id}/watch/${drama.episodes[0].episodeNumber || drama.episodes[0].number || 1}`}
-                className="text-decoration-none mt-4 w-full primary-gradient py-3.5 rounded-xl font-bold text-xs text-white text-center flex items-center justify-center gap-2 shadow-lg shadow-primary/20 hover:opacity-90 active:scale-95 transition-all border-none cursor-pointer"
-              >
-                <span className="material-symbols-outlined text-sm">play_arrow</span>
-                Nonton Episode 1
-              </Link>
+
+            {/* Info Details Box */}
+            <div className="flex-grow">
+              <div className="flex flex-wrap items-center gap-3 mb-3">
+                <span className="px-3 py-1 rounded-md text-[10px] font-extrabold tracking-wider border border-primary/30 bg-primary/10 text-primary uppercase">
+                  {displaySource}
+                </span>
+                <span className={`px-3 py-1 rounded-md text-[10px] font-extrabold tracking-wider border uppercase ${
+                  drama.isCompleted === '1' 
+                    ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30' 
+                    : 'text-amber-400 bg-amber-500/10 border-amber-500/30'
+                }`}>
+                  {statusLabel}
+                </span>
+              </div>
+
+              <h1 className="font-display-lg text-2xl md:text-4xl font-extrabold text-white mb-6 leading-tight">
+                {dramaTitle}
+              </h1>
+
+              {/* Metadata Table Grid */}
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-y-4 gap-x-6 bg-surface-container/20 border border-white/5 rounded-2xl p-5 mb-6 backdrop-blur-md">
+                <div>
+                  <span className="text-[10px] text-on-surface-variant/60 font-semibold block mb-1">Total Episode</span>
+                  <span className="text-xs text-white font-bold">{totalEps} Episode</span>
+                </div>
+                <div>
+                  <span className="text-[10px] text-on-surface-variant/60 font-semibold block mb-1">Bahasa Utama</span>
+                  <span className="text-xs text-white font-bold">{drama.defaultLanguage?.toUpperCase() || 'ID'}</span>
+                </div>
+                <div>
+                  <span className="text-[10px] text-on-surface-variant/60 font-semibold block mb-1">Total View</span>
+                  <span className="text-xs text-white font-bold">{drama.viewCount?.toLocaleString() || 0} Kali</span>
+                </div>
+              </div>
+
+              {/* Synopsis */}
+              <div>
+                <h3 className="font-bold text-sm text-white mb-2">Sinopsis</h3>
+                <p className="font-body-md text-xs text-on-surface-variant leading-relaxed max-w-4xl whitespace-pre-line bg-surface-container/10 p-4 rounded-xl border border-white/5">
+                  {drama.synopsis || drama.description || 'Belum ada sinopsis untuk drama ini.'}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Episode Playlist Section */}
+          <div className="bg-surface-container/20 border border-white/5 rounded-3xl p-6 md:p-8 backdrop-blur-md">
+            <h2 className="font-display-md text-lg md:text-xl font-bold text-white mb-6 flex items-center gap-2">
+              <span className="material-symbols-outlined text-primary text-xl">playlist_play</span>
+              Daftar Episode
+            </h2>
+
+            {!drama.episodes || drama.episodes.length === 0 ? (
+              <p className="text-on-surface-variant text-sm italic">Belum ada episode yang tersedia.</p>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3">
+                {drama.episodes.map((ep) => {
+                  const epNum = ep.episodeNumber || ep.number;
+                  
+                  return (
+                    <Link
+                      key={epNum}
+                      href={`/dracin/${source}/${id}/watch/${epNum}`}
+                      className={`text-decoration-none px-4 py-3 rounded-xl flex items-center justify-between transition-all font-bold text-xs active:scale-95 cursor-pointer border ${
+                        ep.locked
+                          ? 'bg-surface-container-high/20 border-white/5 text-on-surface-variant/60 hover:border-primary/20 hover:bg-primary/5 hover:text-white'
+                          : 'bg-surface-container-high/40 hover:bg-primary/20 border-outline-variant/30 hover:border-primary/40 text-white'
+                      }`}
+                    >
+                      <span>Eps {epNum}</span>
+                      {ep.locked && (
+                        <span className="material-symbols-outlined text-[10px] text-on-surface-variant/50">lock</span>
+                      )}
+                    </Link>
+                  );
+                })}
+              </div>
             )}
           </div>
-
-          {/* Info Details Box */}
-          <div className="flex-grow">
-            <div className="flex flex-wrap items-center gap-3 mb-3">
-              <span className="px-3 py-1 rounded-md text-[10px] font-extrabold tracking-wider border border-primary/30 bg-primary/10 text-primary uppercase">
-                {displaySource}
-              </span>
-              <span className={`px-3 py-1 rounded-md text-[10px] font-extrabold tracking-wider border uppercase ${
-                drama.isCompleted === '1' 
-                  ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30' 
-                  : 'text-amber-400 bg-amber-500/10 border-amber-500/30'
-              }`}>
-                {statusLabel}
-              </span>
-            </div>
-
-            <h1 className="font-display-lg text-2xl md:text-4xl font-extrabold text-white mb-6 leading-tight">
-              {dramaTitle}
-            </h1>
-
-            {/* Metadata Table Grid */}
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-y-4 gap-x-6 bg-surface-container/20 border border-white/5 rounded-2xl p-5 mb-6 backdrop-blur-md">
-              <div>
-                <span className="text-[10px] text-on-surface-variant/60 font-semibold block mb-1">Total Episode</span>
-                <span className="text-xs text-white font-bold">{totalEps} Episode</span>
-              </div>
-              <div>
-                <span className="text-[10px] text-on-surface-variant/60 font-semibold block mb-1">Bahasa Utama</span>
-                <span className="text-xs text-white font-bold">{drama.defaultLanguage?.toUpperCase() || 'ID'}</span>
-              </div>
-              <div>
-                <span className="text-[10px] text-on-surface-variant/60 font-semibold block mb-1">Total View</span>
-                <span className="text-xs text-white font-bold">{drama.viewCount?.toLocaleString() || 0} Kali</span>
-              </div>
-            </div>
-
-            {/* Synopsis */}
-            <div>
-              <h3 className="font-bold text-sm text-white mb-2">Sinopsis</h3>
-              <p className="font-body-md text-xs text-on-surface-variant leading-relaxed max-w-4xl whitespace-pre-line bg-surface-container/10 p-4 rounded-xl border border-white/5">
-                {drama.synopsis || drama.description || 'Belum ada sinopsis untuk drama ini.'}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Episode Playlist Section */}
-        <div className="bg-surface-container/20 border border-white/5 rounded-3xl p-6 md:p-8 backdrop-blur-md">
-          <h2 className="font-display-md text-lg md:text-xl font-bold text-white mb-6 flex items-center gap-2">
-            <span className="material-symbols-outlined text-primary text-xl">playlist_play</span>
-            Daftar Episode
-          </h2>
-
-          {!drama.episodes || drama.episodes.length === 0 ? (
-            <p className="text-on-surface-variant text-sm italic">Belum ada episode yang tersedia.</p>
-          ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3">
-              {drama.episodes.map((ep) => {
-                const epNum = ep.episodeNumber || ep.number;
-                
-                return (
-                  <Link
-                    key={epNum}
-                    href={`/dracin/${source}/${id}/watch/${epNum}`}
-                    className={`text-decoration-none px-4 py-3 rounded-xl flex items-center justify-between transition-all font-bold text-xs active:scale-95 cursor-pointer border ${
-                      ep.locked
-                        ? 'bg-surface-container-high/20 border-white/5 text-on-surface-variant/60 hover:border-primary/20 hover:bg-primary/5 hover:text-white'
-                        : 'bg-surface-container-high/40 hover:bg-primary/20 border-outline-variant/30 hover:border-primary/40 text-white'
-                    }`}
-                  >
-                    <span>Eps {epNum}</span>
-                    {ep.locked && (
-                      <span className="material-symbols-outlined text-[10px] text-on-surface-variant/50">lock</span>
-                    )}
-                  </Link>
-                );
-              })}
-            </div>
-          )}
         </div>
       </div>
-    </div>
-  );
+    );
+  } catch (rootErr: any) {
+    try {
+      const fs = require('fs');
+      fs.writeFileSync('c:\\Users\\Administrator\\Downloads\\dapp\\error-log.txt', rootErr.message + '\n' + rootErr.stack);
+    } catch (_) {}
+    throw rootErr;
+  }
 }

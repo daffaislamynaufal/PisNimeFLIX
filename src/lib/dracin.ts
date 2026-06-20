@@ -101,6 +101,18 @@ const detailCache = new Map<string, CacheEntry<any>>();
 const CATALOG_CACHE_TTL = 3 * 60 * 1000; // 3 minutes cache for catalog lists
 const DETAIL_CACHE_TTL = 10 * 60 * 1000; // 10 minutes cache for details
 
+function mapDramaItem(item: any) {
+  const id = item.id || item.dramaId || item.filteredTitle || item.key;
+  return {
+    id: id ? String(id) : '',
+    title: item.title || '',
+    cover: item.cover || item.poster || item.posterImg || item.thumbnail || '',
+    totalEpisodes: item.episode || item.episodeCount || item.totalEpisodes || item.episodes || 0,
+    isCompleted: '0',
+    defaultLanguage: 'zh'
+  };
+}
+
 export async function getDracinCatalog(source: string, type: string, page: number = 1, q: string = '', clientUA?: string) {
   const cacheKey = `${source}:${type}:${page}:${q}`;
   const cached = catalogCache.get(cacheKey);
@@ -113,39 +125,44 @@ export async function getDracinCatalog(source: string, type: string, page: numbe
   let result;
   if (type === 'search') {
     const data = await fetchCutadAPI(mappedSource, 'search', { q }, clientUA);
-    const items = data.data?.items || data.items || [];
+    const rawItems = data.data?.items || data.items || data.rows || [];
     result = {
-      items: items.map((item: any) => ({
-        id: item.id || item.filteredTitle || '',
-        title: item.title || '',
-        cover: item.cover || '',
-        totalEpisodes: item.episode || 0,
-        isCompleted: '0',
-        defaultLanguage: 'zh'
-      }))
+      items: rawItems.map((item: any) => mapDramaItem(item))
     };
   } else {
     // Map other tabs to action=rank
     const data = await fetchCutadAPI(mappedSource, 'rank', {}, clientUA);
-    const sections = data.data?.sections || [];
     
+    // Fallback parser to support multiple data structures
+    let rawItems: any[] = [];
+    if (data.data?.sections) {
+      for (const sec of data.data.sections) {
+        if (sec.items) {
+          rawItems.push(...sec.items);
+        }
+      }
+    } else if (Array.isArray(data.items)) {
+      rawItems = data.items;
+    } else if (Array.isArray(data.rows)) {
+      rawItems = data.rows;
+    } else if (data.data) {
+      if (Array.isArray(data.data)) {
+        rawItems = data.data;
+      } else if (Array.isArray(data.data.items)) {
+        rawItems = data.data.items;
+      } else if (Array.isArray(data.data.rows)) {
+        rawItems = data.data.rows;
+      }
+    }
+
     const allItems: any[] = [];
     const seenIds = new Set();
     
-    for (const sec of sections) {
-      for (const item of (sec.items || [])) {
-        const id = item.id || item.filteredTitle;
-        if (id && !seenIds.has(id)) {
-          seenIds.add(id);
-          allItems.push({
-            id,
-            title: item.title || '',
-            cover: item.cover || '',
-            totalEpisodes: item.episode || 0,
-            isCompleted: '0',
-            defaultLanguage: 'zh'
-          });
-        }
+    for (const item of rawItems) {
+      const mapped = mapDramaItem(item);
+      if (mapped.id && !seenIds.has(mapped.id)) {
+        seenIds.add(mapped.id);
+        allItems.push(mapped);
       }
     }
 
@@ -179,16 +196,18 @@ export async function getDracinDetail(source: string, id: string, clientUA?: str
   const mappedSource = SOURCE_MAP[source] || source;
   const data = await fetchCutadAPI(mappedSource, 'detail', { id }, clientUA);
   
-  const drama = data.data;
+  const drama = data.data || data;
   if (!drama) return null;
 
-  const episodes = (drama.chapters || []).map((ch: any) => {
-    const epNum = ch.episode || 1;
-    const videoFakeId = `${id}::${drama.bookId}::${ch.chapter_id}`;
+  const chapters = drama.chapters || drama.episodes || drama.rows || [];
+  const episodes = chapters.map((ch: any) => {
+    const epNum = ch.episode || ch.episodeNumber || ch.number || 1;
+    const chId = ch.chapter_id || ch.id || ch.chapterId || '';
+    const videoFakeId = `${id}::${drama.bookId || drama.id || ''}::${chId}`;
     return {
       episodeNumber: epNum,
       number: epNum,
-      title: ch.chapter_name || `Episode ${epNum}`,
+      title: ch.chapter_name || ch.title || `Episode ${epNum}`,
       locked: false,
       videoUrl: videoFakeId
     };
@@ -197,17 +216,16 @@ export async function getDracinDetail(source: string, id: string, clientUA?: str
   const result = {
     id: drama.id || id,
     title: drama.title || '',
-    cover: drama.cover || '',
+    cover: drama.cover || drama.poster || drama.posterImg || drama.thumbnail || '',
     totalEpisodes: drama.totalEpisodes || episodes.length,
-    description: drama.description || '',
-    synopsis: drama.description || '',
+    description: drama.description || drama.synopsis || '',
+    synopsis: drama.description || drama.synopsis || '',
     isCompleted: '0',
     defaultLanguage: 'zh',
     viewCount: 0,
     episodes
   };
 
-  // We cache both the full returned details and the internal drama object structure for stream resolution
   detailCache.set(cacheKey, { data: result, timestamp: Date.now() });
   return result;
 }
@@ -215,7 +233,6 @@ export async function getDracinDetail(source: string, id: string, clientUA?: str
 export async function getDracinEpisodeStream(source: string, id: string, epNum: number, clientUA?: string) {
   const mappedSource = SOURCE_MAP[source] || source;
   
-  // Try to read detail info from detailCache first to skip the redundant request
   const cacheKey = `${source}:${id}`;
   const cachedDetail = detailCache.get(cacheKey);
   
@@ -233,24 +250,24 @@ export async function getDracinEpisodeStream(source: string, id: string, epNum: 
       };
     });
   } else {
-    // If not cached, fetch fresh
     const detail = await fetchCutadAPI(mappedSource, 'detail', { id }, clientUA);
-    const drama = detail.data;
+    const drama = detail.data || detail;
     if (!drama) {
       throw new Error('Drama detail not found');
     }
-    bookId = drama.bookId;
-    chapters = drama.chapters || [];
+    bookId = drama.bookId || drama.id || '';
+    const rawChapters = drama.chapters || drama.episodes || drama.rows || [];
+    chapters = rawChapters;
     
-    // Set details cache since we retrieved it
-    const episodes = chapters.map((ch: any) => {
-      const epNumVal = ch.episode || 1;
+    const episodes = rawChapters.map((ch: any) => {
+      const epNumVal = ch.episode || ch.episodeNumber || ch.number || 1;
+      const chId = ch.chapter_id || ch.id || ch.chapterId || '';
       return {
         episodeNumber: epNumVal,
         number: epNumVal,
-        title: ch.chapter_name || `Episode ${epNumVal}`,
+        title: ch.chapter_name || ch.title || `Episode ${epNumVal}`,
         locked: false,
-        videoUrl: `${id}::${bookId}::${ch.chapter_id}`
+        videoUrl: `${id}::${bookId}::${chId}`
       };
     });
     
@@ -258,10 +275,10 @@ export async function getDracinEpisodeStream(source: string, id: string, epNum: 
       data: {
         id,
         title: drama.title || '',
-        cover: drama.cover || '',
+        cover: drama.cover || drama.poster || drama.posterImg || drama.thumbnail || '',
         totalEpisodes: drama.totalEpisodes || episodes.length,
-        description: drama.description || '',
-        synopsis: drama.description || '',
+        description: drama.description || drama.synopsis || '',
+        synopsis: drama.description || drama.synopsis || '',
         isCompleted: '0',
         defaultLanguage: 'zh',
         viewCount: 0,
@@ -276,9 +293,11 @@ export async function getDracinEpisodeStream(source: string, id: string, epNum: 
     throw new Error(`Episode ${epNum} not found`);
   }
 
+  const chId = chapter.chapter_id || chapter.id || chapter.chapterId || '';
+
   const watchData = await fetchCutadAPI(mappedSource, 'watch', {
     bookId,
-    chapterId: chapter.chapter_id,
+    chapterId: chId,
     episode: '1',
     filteredTitle: id
   }, clientUA);

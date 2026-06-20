@@ -187,14 +187,16 @@ export default function KomikCatalogPage() {
               >
                 <div>
                   <div className="relative aspect-[2/3] bg-white/5"></div>
-                  <div className="p-4 space-y-3">
-                    <div className="flex justify-between text-[10px] font-semibold">
+                  <div className="p-4">
+                    <div className="flex justify-between items-center mb-2 h-4">
                       <div className="h-3 w-16 bg-white/10 rounded"></div>
                     </div>
-                    <div className="h-4 w-5/6 bg-white/10 rounded"></div>
+                    <div className="h-10 flex items-start">
+                      <div className="h-4 w-5/6 bg-white/10 rounded"></div>
+                    </div>
                   </div>
                 </div>
-                <div className="px-4 pb-4 pt-1">
+                <div className="px-4 pb-4 pt-1 border-t border-white/5">
                   <div className="h-8 w-full bg-white/5 rounded-xl"></div>
                 </div>
               </div>
@@ -261,14 +263,14 @@ export default function KomikCatalogPage() {
                     {/* Info */}
                     <div className="p-4">
                       {/* Genre & Stats info */}
-                      <div className="flex justify-between items-center text-[10px] text-on-surface-variant/60 font-semibold mb-2">
+                      <div className="flex justify-between items-center text-[10px] text-on-surface-variant/60 font-semibold mb-2 h-4">
                         <span>{comic.genre || 'General'}</span>
                         {comic.stats && <span className="opacity-85">{comic.stats.split('|')[0].trim()}</span>}
                       </div>
 
                       {/* Comic Title Link */}
-                      <Link href={`/komik/${comic.slug}`} className="text-decoration-none">
-                        <h3 className="font-bold text-sm text-white hover:text-primary transition-colors line-clamp-2 leading-tight mb-2">
+                      <Link href={`/komik/${comic.slug}`} className="text-decoration-none block h-10">
+                        <h3 className="font-bold text-sm text-white hover:text-primary transition-colors line-clamp-2 leading-tight">
                           {comic.title}
                         </h3>
                       </Link>

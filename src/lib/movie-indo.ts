@@ -38,60 +38,101 @@ export async function getAllMovieIndo(): Promise<MovieItem[]> {
   }
 
   const allItems: MovieItem[] = [];
-  let page = 1;
-  let hasMore = true;
 
   try {
     const cookie = await getCutadCookie();
-    while (hasMore && page <= 10) { // Safety limit of 10 pages
-      const url = `${BASE_URL}/category/sfilmindo/?page=${page}`;
-      const response = await axios.get(url, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-          'Cookie': cookie,
-          'Referer': BASE_URL
-        },
-        timeout: 10000
+    
+    // Fetch page 1 first to determine maxPage and load initial items
+    const firstPageUrl = `${BASE_URL}/category/sfilmindo/?page=1`;
+    const response = await axios.get(firstPageUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Cookie': cookie,
+        'Referer': BASE_URL
+      },
+      timeout: 10000
+    });
+
+    const $ = cheerio.load(response.data);
+    
+    // Parse Page 1 items
+    $('a.group.block').each((_, el) => {
+      const href = $(el).attr('href') || '';
+      const match = href.match(/\/watch\/sfilmindo\/([^/]+)/);
+      if (!match) return;
+
+      const slug = match[1];
+      const title = $(el).find('h3').text().trim() || $(el).find('img').attr('alt') || '';
+      const rawCover = $(el).find('img').attr('src') || $(el).find('img').attr('data-src') || '';
+      
+      allItems.push({
+        id: slug,
+        slug,
+        title,
+        cover: rewriteCoverUrl(rawCover)
       });
+    });
 
-      const $ = cheerio.load(response.data);
-      const pageItems: MovieItem[] = [];
-
-      $('a.group.block').each((_, el) => {
-        const href = $(el).attr('href') || '';
-        const match = href.match(/\/watch\/sfilmindo\/([^/]+)/);
-        if (!match) return;
-
-        const slug = match[1];
-        const title = $(el).find('h3').text().trim() || $(el).find('img').attr('alt') || '';
-        const rawCover = $(el).find('img').attr('src') || $(el).find('img').attr('data-src') || '';
-        
-        pageItems.push({
-          id: slug,
-          slug,
-          title,
-          cover: rewriteCoverUrl(rawCover)
-        });
-      });
-
-      if (pageItems.length === 0) {
-        break;
+    // Detect maximum page from Page 1 pagination links
+    let maxPage = 1;
+    $('a').each((_, el) => {
+      const href = $(el).attr('href') || '';
+      const match = href.match(/[?&]page=(\d+)/);
+      if (match) {
+        const pNum = parseInt(match[1], 10);
+        if (pNum > maxPage) {
+          maxPage = pNum;
+        }
       }
+    });
 
-      allItems.push(...pageItems);
+    // If there are other pages, fetch them in parallel
+    if (maxPage > 1) {
+      const otherPages = Array.from({ length: maxPage - 1 }, (_, i) => i + 2);
+      
+      const pagePromises = otherPages.map(async (p) => {
+        try {
+          const url = `${BASE_URL}/category/sfilmindo/?page=${p}`;
+          const res = await axios.get(url, {
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+              'Cookie': cookie,
+              'Referer': BASE_URL
+            },
+            timeout: 10000
+          });
+          
+          const page$ = cheerio.load(res.data);
+          const pageItems: MovieItem[] = [];
+          
+          page$('a.group.block').each((_, el) => {
+            const href = page$(el).attr('href') || '';
+            const match = href.match(/\/watch\/sfilmindo\/([^/]+)/);
+            if (!match) return;
 
-      // Check pagination next page existence
-      let pageHasMore = false;
-      $('a').each((_, el) => {
-        const text = $(el).text().trim();
-        const href = $(el).attr('href') || '';
-        if (href.includes(`page=${page + 1}`) || (text.includes('Berikutnya') && href.includes(`page=${page + 1}`))) {
-          pageHasMore = true;
+            const slug = match[1];
+            const title = page$(el).find('h3').text().trim() || page$(el).find('img').attr('alt') || '';
+            const rawCover = page$(el).find('img').attr('src') || page$(el).find('img').attr('data-src') || '';
+            
+            pageItems.push({
+              id: slug,
+              slug,
+              title,
+              cover: rewriteCoverUrl(rawCover)
+            });
+          });
+          
+          return pageItems;
+        } catch (e: any) {
+          console.error(`Error fetching page ${p} in parallel:`, e.message);
+          return [];
         }
       });
-
-      hasMore = pageHasMore;
-      page++;
+      
+      const results = await Promise.all(pagePromises);
+      for (const pageItems of results) {
+        allItems.push(...pageItems);
+      }
     }
 
     if (allItems.length > 0) {

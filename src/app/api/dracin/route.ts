@@ -60,13 +60,17 @@ export async function GET(request: Request) {
       targetUrl += `?id=${id}&ep=${ep}`;
     }
     
+    // Get incoming User-Agent header and forward it
+    const clientUserAgent = request.headers.get('user-agent') || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+
     // Fetch from external api
     const response = await fetch(targetUrl, {
       method: 'GET',
       headers: {
         'X-API-Key': ANICHIN_API_KEY,
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-      }
+        'User-Agent': clientUserAgent
+      },
+      cache: 'no-store'
     });
     
     if (!response.ok) {
@@ -77,7 +81,13 @@ export async function GET(request: Request) {
     }
     
     const data = await response.json();
-    return NextResponse.json(data);
+    return NextResponse.json(data, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
+    });
   } catch (error) {
     console.error('Error in Dracin API proxy route:', error);
     return NextResponse.json({ error: 'Failed to process proxy request.' }, { status: 500 });

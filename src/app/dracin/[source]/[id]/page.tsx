@@ -1,6 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { headers } from 'next/headers';
 
 const ANICHIN_API_KEY = process.env.ANICHIN_API_KEY || 'TRIAL-ANICHIN-2026';
 
@@ -37,12 +38,15 @@ interface DetailPageProps {
 export async function generateMetadata({ params }: DetailPageProps) {
   const { source, id } = await params;
   try {
+    const headersList = await headers();
+    const clientUA = headersList.get('user-agent') || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+
     const res = await fetch(`https://api.anichin.bio/${source}/detail?id=${id}`, {
       headers: {
         'X-API-Key': ANICHIN_API_KEY,
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        'User-Agent': clientUA
       },
-      next: { revalidate: 1800 }
+      cache: 'no-store'
     });
     
     if (!res.ok) return { title: 'Detail Drama - PisNime Flix' };
@@ -70,12 +74,15 @@ export default async function DracinDetailPage({ params }: DetailPageProps) {
 
   let detailData: DramaDetail | null = null;
   try {
+    const headersList = await headers();
+    const clientUA = headersList.get('user-agent') || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+
     const res = await fetch(`https://api.anichin.bio/${source}/detail?id=${id}`, {
       headers: {
         'X-API-Key': ANICHIN_API_KEY,
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        'User-Agent': clientUA
       },
-      next: { revalidate: 1800 }
+      cache: 'no-store'
     });
     if (res.ok) {
       const rawData = await res.json();

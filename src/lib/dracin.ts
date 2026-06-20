@@ -68,11 +68,11 @@ export const SOURCE_MAP: Record<string, string> = {
 };
 
 export async function fetchCutadAPI(provider: string, action: string, queryParams: Record<string, string> = {}, clientUA?: string) {
-  const cookie = await getCutadCookie();
+  let cookie = await getCutadCookie();
   const searchParams = new URLSearchParams({ action, ...queryParams });
   const targetUrl = `https://www.cutad.web.id/api/${provider}?${searchParams.toString()}`;
 
-  const response = await fetch(targetUrl, {
+  let response = await fetch(targetUrl, {
     method: 'GET',
     headers: {
       'User-Agent': clientUA || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -81,6 +81,23 @@ export async function fetchCutadAPI(provider: string, action: string, queryParam
     },
     cache: 'no-store'
   });
+
+  // Optimize: If cookie expired/rejected, clear cache and retry once
+  if (response.status === 401 || response.status === 403) {
+    console.warn(`Cookie expired or rejected (status ${response.status}). Retrying with a fresh cookie...`);
+    cachedCookie = '';
+    cookieExpiry = 0;
+    cookie = await getCutadCookie();
+    response = await fetch(targetUrl, {
+      method: 'GET',
+      headers: {
+        'User-Agent': clientUA || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Cookie': cookie,
+        'Referer': 'https://www.cutad.web.id/'
+      },
+      cache: 'no-store'
+    });
+  }
 
   if (!response.ok) {
     throw new Error(`Failed to fetch from cutad.web.id: ${response.statusText}`);

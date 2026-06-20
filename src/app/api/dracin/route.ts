@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 
+const ANICHIN_API_KEY = process.env.ANICHIN_API_KEY || 'TRIAL-ANICHIN-2026';
+
 const ALLOWED_SOURCES = [
   'dramabox', 'reelshort', 'shortmax', 'netshort', 'goodshort',
   'dramawave', 'flickreels', 'freereels', 'idrama', 'dramanova',
@@ -62,7 +64,7 @@ export async function GET(request: Request) {
     const response = await fetch(targetUrl, {
       method: 'GET',
       headers: {
-        'X-API-Key': 'TRIAL-ANICHIN-2026',
+        'X-API-Key': ANICHIN_API_KEY,
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
       }
     });

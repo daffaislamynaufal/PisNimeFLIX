@@ -2,6 +2,8 @@ import React from 'react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
+const ANICHIN_API_KEY = process.env.ANICHIN_API_KEY || 'TRIAL-ANICHIN-2026';
+
 interface EpisodeItem {
   episodeNumber: number;
   episodeTitle: string;
@@ -37,7 +39,7 @@ export async function generateMetadata({ params }: DetailPageProps) {
   try {
     const res = await fetch(`https://api.anichin.bio/${source}/detail?id=${id}`, {
       headers: {
-        'X-API-Key': 'TRIAL-ANICHIN-2026',
+        'X-API-Key': ANICHIN_API_KEY,
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
       },
       next: { revalidate: 1800 }
@@ -70,7 +72,7 @@ export default async function DracinDetailPage({ params }: DetailPageProps) {
   try {
     const res = await fetch(`https://api.anichin.bio/${source}/detail?id=${id}`, {
       headers: {
-        'X-API-Key': 'TRIAL-ANICHIN-2026',
+        'X-API-Key': ANICHIN_API_KEY,
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
       },
       next: { revalidate: 1800 }

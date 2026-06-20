@@ -101,13 +101,58 @@ const detailCache = new Map<string, CacheEntry<any>>();
 const CATALOG_CACHE_TTL = 3 * 60 * 1000; // 3 minutes cache for catalog lists
 const DETAIL_CACHE_TTL = 10 * 60 * 1000; // 10 minutes cache for details
 
+export function rewriteCoverUrl(url: string): string {
+  if (!url) return '';
+  if (url.startsWith('/api/dracin-proxy/')) {
+    return url;
+  }
+  const match = url.match(/(?:\/api\/proxy\?u=([^&]+))/);
+  if (match && match[1]) {
+    return `/api/dracin-proxy/ts?u=${match[1]}`;
+  }
+  
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    if (!url.includes('localhost') && !url.includes('127.0.0.1') && !url.includes('daffaislamy.biz.id')) {
+      try {
+        const b64 = typeof btoa !== 'undefined' ? btoa(url) : Buffer.from(url).toString('base64');
+        return `/api/dracin-proxy/ts?u=${encodeURIComponent(b64)}`;
+      } catch (e) {
+        return url;
+      }
+    }
+  }
+  
+  return url;
+}
+
+export function extractTitle(obj: any): string {
+  if (!obj) return '';
+  return obj.title || obj.name || obj.bookName || obj.book_name || obj.dramaName || obj.drama_name || obj.dramaTitle || obj.filteredTitle || '';
+}
+
+export function extractCover(obj: any): string {
+  if (!obj) return '';
+  const rawUrl = obj.cover || obj.coverImage || obj.cover_image || obj.coverUrl || obj.imageUrl || obj.image_url || obj.image || obj.verticalCover || obj.vertical_cover || obj.poster || obj.posterUrl || obj.poster_url || obj.posterImg || obj.thumbnail || '';
+  return rewriteCoverUrl(rawUrl);
+}
+
+export function extractTotalEpisodes(obj: any, fallbackCount: number = 0): number {
+  if (!obj) return fallbackCount;
+  return obj.episode || obj.episodeCount || obj.totalEpisodes || obj.episodes || obj.episodeNum || obj.episode_num || obj.chapterCount || obj.chapters || fallbackCount;
+}
+
+export function extractDescription(obj: any): string {
+  if (!obj) return '';
+  return obj.description || obj.synopsis || obj.intro || obj.summary || '';
+}
+
 function mapDramaItem(item: any) {
   const id = item.id || item.dramaId || item.filteredTitle || item.key;
   return {
     id: id ? String(id) : '',
-    title: item.title || '',
-    cover: item.cover || item.poster || item.posterImg || item.thumbnail || '',
-    totalEpisodes: item.episode || item.episodeCount || item.totalEpisodes || item.episodes || 0,
+    title: extractTitle(item),
+    cover: extractCover(item),
+    totalEpisodes: extractTotalEpisodes(item, 0),
     isCompleted: '0',
     defaultLanguage: 'zh'
   };
@@ -125,7 +170,7 @@ export async function getDracinCatalog(source: string, type: string, page: numbe
   let result;
   if (type === 'search') {
     const data = await fetchCutadAPI(mappedSource, 'search', { q }, clientUA);
-    const rawItems = data.data?.items || data.items || data.rows || [];
+    const rawItems = data.data?.items || data.items || data.rows || data.list || data.results || [];
     result = {
       items: rawItems.map((item: any) => mapDramaItem(item))
     };
@@ -157,6 +202,10 @@ export async function getDracinCatalog(source: string, type: string, page: numbe
       rawItems = data.rows;
     } else if (Array.isArray(data.dramas)) {
       rawItems = data.dramas;
+    } else if (Array.isArray(data.list)) {
+      rawItems = data.list;
+    } else if (Array.isArray(data.results)) {
+      rawItems = data.results;
     } else if (data.data) {
       if (Array.isArray(data.data)) {
         rawItems = data.data;
@@ -166,6 +215,10 @@ export async function getDracinCatalog(source: string, type: string, page: numbe
         rawItems = data.data.rows;
       } else if (Array.isArray(data.data.dramas)) {
         rawItems = data.data.dramas;
+      } else if (Array.isArray(data.data.list)) {
+        rawItems = data.data.list;
+      } else if (Array.isArray(data.data.results)) {
+        rawItems = data.data.results;
       }
     }
 
@@ -213,15 +266,15 @@ export async function getDracinDetail(source: string, id: string, clientUA?: str
   const drama = data.data || data;
   if (!drama) return null;
 
-  const chapters = drama.chapters || drama.episodes || drama.rows || [];
+  const chapters = drama.chapters || drama.episodes || drama.rows || drama.chapter_list || drama.chapterList || drama.episodeList || drama.items || [];
   const episodes = chapters.map((ch: any) => {
-    const epNum = ch.episode || ch.episodeNumber || ch.episodeNo || ch.episode_no || ch.number || 1;
-    const chId = ch.chapter_id || ch.id || ch.chapterId || ch.episodeNo || '';
-    const videoFakeId = `${id}::${drama.bookId || drama.id || ''}::${chId}`;
+    const epNum = ch.episode || ch.episodeNumber || ch.episodeNo || ch.episode_no || ch.number || ch.chapter_no || ch.chapterNo || ch.sort || 1;
+    const chId = ch.chapter_id || ch.id || ch.chapterId || ch.episodeNo || ch.chapterNo || '';
+    const videoFakeId = `${id}::${drama.bookId || drama.id || drama.book_id || drama.dramaId || drama.drama_id || ''}::${chId}`;
     return {
       episodeNumber: epNum,
       number: epNum,
-      title: ch.chapter_name || ch.title || `Episode ${epNum}`,
+      title: ch.chapter_name || ch.chapterTitle || ch.title || ch.name || `Episode ${epNum}`,
       locked: false,
       videoUrl: videoFakeId
     };
@@ -229,14 +282,14 @@ export async function getDracinDetail(source: string, id: string, clientUA?: str
 
   const result = {
     id: drama.id || id,
-    title: drama.title || '',
-    cover: drama.cover || drama.poster || drama.posterImg || drama.thumbnail || '',
-    totalEpisodes: drama.totalEpisodes || episodes.length,
-    description: drama.description || drama.synopsis || '',
-    synopsis: drama.description || drama.synopsis || '',
+    title: extractTitle(drama),
+    cover: extractCover(drama),
+    totalEpisodes: extractTotalEpisodes(drama, episodes.length),
+    description: extractDescription(drama),
+    synopsis: extractDescription(drama),
     isCompleted: '0',
     defaultLanguage: 'zh',
-    viewCount: 0,
+    viewCount: drama.viewCount || drama.view_count || 0,
     episodes
   };
 
@@ -269,17 +322,17 @@ export async function getDracinEpisodeStream(source: string, id: string, epNum: 
     if (!drama) {
       throw new Error('Drama detail not found');
     }
-    bookId = drama.bookId || drama.id || '';
-    const rawChapters = drama.chapters || drama.episodes || drama.rows || [];
+    bookId = drama.bookId || drama.id || drama.book_id || drama.dramaId || drama.drama_id || '';
+    const rawChapters = drama.chapters || drama.episodes || drama.rows || drama.chapter_list || drama.chapterList || drama.episodeList || drama.items || [];
     chapters = rawChapters;
     
     const episodes = rawChapters.map((ch: any) => {
-      const epNumVal = ch.episode || ch.episodeNumber || ch.episodeNo || ch.episode_no || ch.number || 1;
-      const chId = ch.chapter_id || ch.id || ch.chapterId || ch.episodeNo || '';
+      const epNumVal = ch.episode || ch.episodeNumber || ch.episodeNo || ch.episode_no || ch.number || ch.chapter_no || ch.chapterNo || ch.sort || 1;
+      const chId = ch.chapter_id || ch.id || ch.chapterId || ch.episodeNo || ch.chapterNo || '';
       return {
         episodeNumber: epNumVal,
         number: epNumVal,
-        title: ch.chapter_name || ch.title || `Episode ${epNumVal}`,
+        title: ch.chapter_name || ch.chapterTitle || ch.title || ch.name || `Episode ${epNumVal}`,
         locked: false,
         videoUrl: `${id}::${bookId}::${chId}`
       };
@@ -288,14 +341,14 @@ export async function getDracinEpisodeStream(source: string, id: string, epNum: 
     detailCache.set(cacheKey, {
       data: {
         id,
-        title: drama.title || '',
-        cover: drama.cover || drama.poster || drama.posterImg || drama.thumbnail || '',
-        totalEpisodes: drama.totalEpisodes || episodes.length,
-        description: drama.description || drama.synopsis || '',
-        synopsis: drama.description || drama.synopsis || '',
+        title: extractTitle(drama),
+        cover: extractCover(drama),
+        totalEpisodes: extractTotalEpisodes(drama, episodes.length),
+        description: extractDescription(drama),
+        synopsis: extractDescription(drama),
         isCompleted: '0',
         defaultLanguage: 'zh',
-        viewCount: 0,
+        viewCount: drama.viewCount || drama.view_count || 0,
         episodes
       },
       timestamp: Date.now()

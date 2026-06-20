@@ -76,11 +76,12 @@ export async function GET(request: Request) {
     }
 
     const arrayBuffer = await res.arrayBuffer();
+    const contentType = res.headers.get('content-type') || 'video/mp2t';
     return new Response(Buffer.from(arrayBuffer), {
       headers: {
-        'Content-Type': 'video/mp2t',
+        'Content-Type': contentType,
         'Content-Length': res.headers.get('content-length') || String(arrayBuffer.byteLength),
-        'Cache-Control': 'public, max-age=86400', // Cache TS chunks for 24 hours
+        'Cache-Control': 'public, max-age=86400', // Cache TS chunks/images for 24 hours
         'Access-Control-Allow-Origin': '*'
       }
     });

@@ -10,9 +10,11 @@ interface MovieSearchProps {
 export default function MovieSearch({ initialQuery = '' }: MovieSearchProps) {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState(initialQuery);
+  const [isPending, setIsPending] = useState(false);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setIsPending(true);
     if (searchQuery.trim()) {
       router.push(`/movie-indo?q=${encodeURIComponent(searchQuery.trim())}`);
     } else {
@@ -22,6 +24,7 @@ export default function MovieSearch({ initialQuery = '' }: MovieSearchProps) {
 
   const handleClear = () => {
     setSearchQuery('');
+    setIsPending(true);
     router.push(`/movie-indo`);
   };
 
@@ -33,17 +36,23 @@ export default function MovieSearch({ initialQuery = '' }: MovieSearchProps) {
           type="text"
           placeholder="Cari film Indonesia (contoh: Vina, Dilan)..."
           value={searchQuery}
+          disabled={isPending}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full bg-surface-container-high/40 border border-outline-variant/30 rounded-xl pl-12 pr-24 py-3 text-sm focus:outline-none focus:border-primary text-white placeholder:text-on-surface-variant/40 transition-colors backdrop-blur-md"
+          className="w-full bg-surface-container-high/40 border border-outline-variant/30 rounded-xl pl-12 pr-24 py-3 text-sm focus:outline-none focus:border-primary text-white placeholder:text-on-surface-variant/40 transition-colors backdrop-blur-md disabled:opacity-50"
         />
         <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant/60">
           search
         </span>
         <button
           type="submit"
-          className="absolute right-2 top-1/2 -translate-y-1/2 primary-gradient px-4 py-1.5 rounded-lg text-white font-bold text-xs hover:opacity-90 active:scale-95 transition-all border-none cursor-pointer"
+          disabled={isPending}
+          className="absolute right-2 top-1/2 -translate-y-1/2 primary-gradient px-4 py-1.5 rounded-lg text-white font-bold text-xs hover:opacity-90 active:scale-95 transition-all border-none cursor-pointer flex items-center justify-center min-w-[50px] min-h-[30px]"
         >
-          Cari
+          {isPending ? (
+            <div className="w-3.5 h-3.5 rounded-full border border-t-white border-r-white/30 border-b-white/10 border-l-white/30 animate-spin"></div>
+          ) : (
+            'Cari'
+          )}
         </button>
       </form>
 
@@ -54,7 +63,8 @@ export default function MovieSearch({ initialQuery = '' }: MovieSearchProps) {
             Hasil pencarian untuk: &quot;{initialQuery}&quot;
             <button
               onClick={handleClear}
-              className="bg-transparent border-none text-primary hover:text-white cursor-pointer flex items-center p-0 ml-1"
+              disabled={isPending}
+              className="bg-transparent border-none text-primary hover:text-white cursor-pointer flex items-center p-0 ml-1 disabled:opacity-50"
               title="Hapus Pencarian"
             >
               <span className="material-symbols-outlined text-sm">close</span>

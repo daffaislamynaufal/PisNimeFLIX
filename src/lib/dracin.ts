@@ -146,23 +146,43 @@ export function rewriteCoverUrl(url: string): string {
 
 export function extractTitle(obj: any): string {
   if (!obj) return '';
-  return obj.title || obj.name || obj.bookName || obj.book_name || obj.dramaName || obj.drama_name || obj.dramaTitle || obj.filteredTitle || '';
+  const val = obj.title || obj.name || obj.bookName || obj.book_name || obj.dramaName || obj.drama_name || obj.dramaTitle || obj.filteredTitle || '';
+  if (Array.isArray(val)) return String(val[0] || '');
+  if (typeof val === 'object') return String(val.name || val.title || '');
+  return String(val);
 }
 
 export function extractCover(obj: any): string {
   if (!obj) return '';
-  const rawUrl = obj.cover || obj.coverImage || obj.cover_image || obj.coverUrl || obj.imageUrl || obj.image_url || obj.image || obj.verticalCover || obj.vertical_cover || obj.poster || obj.posterUrl || obj.poster_url || obj.posterImg || obj.thumbnail || '';
-  return rewriteCoverUrl(rawUrl);
+  let rawUrl = obj.cover || obj.coverImage || obj.cover_image || obj.coverUrl || obj.imageUrl || obj.image_url || obj.image || obj.verticalCover || obj.vertical_cover || obj.poster || obj.posterUrl || obj.poster_url || obj.posterImg || obj.thumbnail || '';
+  if (Array.isArray(rawUrl)) {
+    rawUrl = rawUrl[0] || '';
+  }
+  if (typeof rawUrl === 'object') {
+    rawUrl = rawUrl.url || rawUrl.src || '';
+  }
+  return rewriteCoverUrl(String(rawUrl));
 }
 
 export function extractTotalEpisodes(obj: any, fallbackCount: number = 0): number {
   if (!obj) return fallbackCount;
-  return obj.episode || obj.episodeCount || obj.totalEpisodes || obj.episodes || obj.episodeNum || obj.episode_num || obj.chapterCount || obj.chapters || fallbackCount;
+  const val = obj.episode || obj.episodeCount || obj.totalEpisodes || obj.episodes || obj.episodeNum || obj.episode_num || obj.chapterCount || obj.chapters;
+  if (val === undefined || val === null) return fallbackCount;
+  if (Array.isArray(val)) return val.length;
+  if (typeof val === 'object') {
+    if (typeof val.length === 'number') return val.length;
+    return fallbackCount;
+  }
+  const parsed = parseInt(String(val), 10);
+  return isNaN(parsed) ? fallbackCount : parsed;
 }
 
 export function extractDescription(obj: any): string {
   if (!obj) return '';
-  return obj.description || obj.synopsis || obj.intro || obj.summary || '';
+  const val = obj.description || obj.synopsis || obj.intro || obj.summary || '';
+  if (Array.isArray(val)) return String(val[0] || '');
+  if (typeof val === 'object') return String(val.text || val.content || '');
+  return String(val);
 }
 
 function mapDramaItem(item: any) {

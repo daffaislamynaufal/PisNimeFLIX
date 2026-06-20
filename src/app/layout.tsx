@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { DesktopNavbar, MobileNavbar } from "./Navbar";
 import OnlineCounter from "./OnlineCounter";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 export const metadata: Metadata = {
   title: "PisNime Flix - Premium Anime Streaming",
@@ -69,6 +70,7 @@ export default function RootLayout({
             </div>
           </div>
         </footer>
+        <SpeedInsights />
       </body>
     </html>
   );

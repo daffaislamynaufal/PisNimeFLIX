@@ -31,97 +31,25 @@ const movieDetailCache = new Map<string, CacheEntry<any>>();
 
 const DETAIL_TTL = 15 * 60 * 1000; // 15 minutes
 
-const RUNTIME_CACHE_FILE = path.join(os.tmpdir(), 'pisnime_movie_indo_cache.json');
-const BUILD_TIME_CACHE_FILE = path.join(process.cwd(), 'src', 'lib', 'movie_indo_cache.json');
-const CACHE_TTL = 60 * 60 * 1000; // 1 hour
+// Memory cache for all movies lists (used during searches)
+let memoryCache: { timestamp: number; items: MovieItem[] } | null = null;
+const MEMORY_TTL = 5 * 60 * 1000; // 5 minutes
 
-interface LocalCache {
-  timestamp: number;
-  items: MovieItem[];
-}
-
-function readLocalCache(): LocalCache | null {
-  try {
-    // 1. Try runtime cache (/tmp)
-    if (fs.existsSync(RUNTIME_CACHE_FILE)) {
-      const data = fs.readFileSync(RUNTIME_CACHE_FILE, 'utf8');
-      return JSON.parse(data);
-    }
-    
-    // 2. Try build-time fallback cache (project directory)
-    if (fs.existsSync(BUILD_TIME_CACHE_FILE)) {
-      const data = fs.readFileSync(BUILD_TIME_CACHE_FILE, 'utf8');
-      return JSON.parse(data);
-    }
-  } catch (e) {
-    console.error('Error reading local cache file:', e);
-  }
-  return null;
-}
-
-function writeLocalCache(items: MovieItem[]) {
-  const data: LocalCache = {
-    timestamp: Date.now(),
-    items
-  };
-  
-  // Always write to runtime cache (/tmp)
-  try {
-    fs.writeFileSync(RUNTIME_CACHE_FILE, JSON.stringify(data), 'utf8');
-  } catch (e) {
-    console.error('Error writing runtime cache file:', e);
-  }
-
-  // Also try writing to build-time cache file if we are running in a writable environment
-  if (process.env.NODE_ENV === 'development' || !process.env.VERCEL) {
-    try {
-      fs.writeFileSync(BUILD_TIME_CACHE_FILE, JSON.stringify(data), 'utf8');
-    } catch (e) {
-      // Ignore errors if read-only
-    }
-  }
-}
-
-let isRefreshing = false;
-
-async function refreshCacheInBackground() {
-  console.log('Refreshing movie-indo cache in background...');
-  const items = await fetchAllMovieIndoFromSource();
-  if (items.length > 0) {
-    writeLocalCache(items);
-    console.log(`Movie-indo cache updated successfully in background. Total items: ${items.length}`);
-  }
-}
+// Page-specific memory cache for catalog listing
+const pageCache = new Map<string, { timestamp: number; items: MovieItem[]; hasMore: boolean }>();
+const PAGE_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 export async function getAllMovieIndo(): Promise<MovieItem[]> {
-  // 1. Read from local cache file
-  const cached = readLocalCache();
-
-  if (cached && cached.items && cached.items.length > 0) {
-    const age = Date.now() - cached.timestamp;
-    
-    // If cache is still fresh, return it
-    if (age < CACHE_TTL) {
-      return cached.items;
-    }
-
-    // If cache is stale (> 1 hour), trigger background refresh and return stale items instantly!
-    if (!isRefreshing) {
-      isRefreshing = true;
-      refreshCacheInBackground().catch(err => {
-        console.error('Error in background cache refresh:', err);
-      }).finally(() => {
-        isRefreshing = false;
-      });
-    }
-
-    return cached.items;
+  if (memoryCache && Date.now() - memoryCache.timestamp < MEMORY_TTL) {
+    return memoryCache.items;
   }
 
-  // 2. Fallback: If no cache exists, fetch synchronously (first visit ever)
   const items = await fetchAllMovieIndoFromSource();
   if (items.length > 0) {
-    writeLocalCache(items);
+    memoryCache = {
+      timestamp: Date.now(),
+      items
+    };
   }
   return items;
 }
@@ -234,20 +162,76 @@ export async function fetchAllMovieIndoFromSource(): Promise<MovieItem[]> {
 
 export async function getMovieIndoCatalog(page: number = 1, q: string = ''): Promise<{ items: MovieItem[]; hasMore: boolean }> {
   try {
-    const allMovies = await getAllMovieIndo();
-    
-    let filtered = allMovies;
-    if (q.trim()) {
-      const queryLower = q.toLowerCase().trim();
-      filtered = allMovies.filter(item => item.title.toLowerCase().includes(queryLower));
+    const cacheKey = `${page}:${q}`;
+    const cached = pageCache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < PAGE_CACHE_TTL) {
+      return { items: cached.items, hasMore: cached.hasMore };
     }
 
-    const itemsPerPage = 60;
-    const startIndex = (page - 1) * itemsPerPage;
-    const paginatedItems = filtered.slice(startIndex, startIndex + itemsPerPage);
-    const hasMore = startIndex + itemsPerPage < filtered.length;
+    if (q.trim()) {
+      const allMovies = await getAllMovieIndo();
+      const queryLower = q.toLowerCase().trim();
+      const filtered = allMovies.filter(item => item.title.toLowerCase().includes(queryLower));
+      
+      const itemsPerPage = 60;
+      const startIndex = (page - 1) * itemsPerPage;
+      const paginatedItems = filtered.slice(startIndex, startIndex + itemsPerPage);
+      const hasMore = startIndex + itemsPerPage < filtered.length;
 
-    return { items: paginatedItems, hasMore };
+      const result = { items: paginatedItems, hasMore };
+      pageCache.set(cacheKey, { timestamp: Date.now(), items: result.items, hasMore: result.hasMore });
+      return result;
+    } else {
+      // Fetch specifically the requested page from source
+      const cookie = await getCutadCookie();
+      const url = `${BASE_URL}/category/sfilmindo/?page=${page}`;
+      const response = await axios.get(url, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Cookie': cookie,
+          'Referer': BASE_URL
+        },
+        timeout: 15000
+      });
+
+      const $ = cheerio.load(response.data);
+      const items: MovieItem[] = [];
+
+      $('a.group.block').each((_, el) => {
+        const href = $(el).attr('href') || '';
+        const match = href.match(/\/watch\/sfilmindo\/([^/]+)/);
+        if (!match) return;
+
+        const slug = match[1];
+        const title = $(el).find('h3').text().trim() || $(el).find('img').attr('alt') || '';
+        const rawCover = $(el).find('img').attr('src') || $(el).find('img').attr('data-src') || '';
+        
+        items.push({
+          id: slug,
+          slug,
+          title,
+          cover: rewriteCoverUrl(rawCover)
+        });
+      });
+
+      // Detect max page
+      let maxPage = page;
+      $('a').each((_, el) => {
+        const href = $(el).attr('href') || '';
+        const match = href.match(/[?&]page=(\d+)/);
+        if (match) {
+          const pNum = parseInt(match[1], 10);
+          if (pNum > maxPage) {
+            maxPage = pNum;
+          }
+        }
+      });
+
+      const hasMore = page < maxPage;
+      const result = { items, hasMore };
+      pageCache.set(cacheKey, { timestamp: Date.now(), items: result.items, hasMore: result.hasMore });
+      return result;
+    }
   } catch (err: any) {
     console.error('Error getting Movie Indo catalog:', err.message);
     return { items: [], hasMore: false };

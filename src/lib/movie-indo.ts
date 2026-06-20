@@ -24,66 +24,108 @@ interface CacheEntry<T> {
   data: T;
   timestamp: number;
 }
-const movieCatalogCache = new Map<string, CacheEntry<any>>();
 const movieDetailCache = new Map<string, CacheEntry<any>>();
 
-const CATALOG_TTL = 5 * 60 * 1000; // 5 minutes
 const DETAIL_TTL = 15 * 60 * 1000; // 15 minutes
 
-export async function getMovieIndoCatalog(page: number = 1): Promise<{ items: MovieItem[]; hasMore: boolean }> {
-  const cacheKey = `catalog-${page}`;
-  const cached = movieCatalogCache.get(cacheKey);
-  if (cached && Date.now() - cached.timestamp < CATALOG_TTL) {
-    return cached.data;
+let cachedAllMovies: MovieItem[] | null = null;
+let cachedAllMoviesExpiry = 0;
+const ALL_MOVIES_TTL = 30 * 60 * 1000; // 30 minutes
+
+export async function getAllMovieIndo(): Promise<MovieItem[]> {
+  if (cachedAllMovies && Date.now() < cachedAllMoviesExpiry) {
+    return cachedAllMovies;
   }
 
+  const allItems: MovieItem[] = [];
+  let page = 1;
+  let hasMore = true;
+
   try {
-    const url = `${BASE_URL}/category/sfilmindo/?page=${page}`;
     const cookie = await getCutadCookie();
-    
-    const response = await axios.get(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Cookie': cookie,
-        'Referer': BASE_URL
-      }
-    });
-
-    const $ = cheerio.load(response.data);
-    const items: MovieItem[] = [];
-
-    $('a.group.block').each((_, el) => {
-      const href = $(el).attr('href') || '';
-      const match = href.match(/\/watch\/sfilmindo\/([^/]+)/);
-      if (!match) return;
-
-      const slug = match[1];
-      const title = $(el).find('h3').text().trim() || $(el).find('img').attr('alt') || '';
-      const rawCover = $(el).find('img').attr('src') || $(el).find('img').attr('data-src') || '';
-      
-      items.push({
-        id: slug,
-        slug,
-        title,
-        cover: rewriteCoverUrl(rawCover)
+    while (hasMore && page <= 10) { // Safety limit of 10 pages
+      const url = `${BASE_URL}/category/sfilmindo/?page=${page}`;
+      const response = await axios.get(url, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Cookie': cookie,
+          'Referer': BASE_URL
+        },
+        timeout: 10000
       });
-    });
 
-    // Check pagination next page existence
-    let hasMore = false;
-    $('a').each((_, el) => {
-      const text = $(el).text().trim();
-      const href = $(el).attr('href') || '';
-      if (href.includes(`page=${page + 1}`) || (text.includes('Berikutnya') && href.includes(`page=${page + 1}`))) {
-        hasMore = true;
+      const $ = cheerio.load(response.data);
+      const pageItems: MovieItem[] = [];
+
+      $('a.group.block').each((_, el) => {
+        const href = $(el).attr('href') || '';
+        const match = href.match(/\/watch\/sfilmindo\/([^/]+)/);
+        if (!match) return;
+
+        const slug = match[1];
+        const title = $(el).find('h3').text().trim() || $(el).find('img').attr('alt') || '';
+        const rawCover = $(el).find('img').attr('src') || $(el).find('img').attr('data-src') || '';
+        
+        pageItems.push({
+          id: slug,
+          slug,
+          title,
+          cover: rewriteCoverUrl(rawCover)
+        });
+      });
+
+      if (pageItems.length === 0) {
+        break;
       }
-    });
 
-    const result = { items, hasMore };
-    movieCatalogCache.set(cacheKey, { data: result, timestamp: Date.now() });
-    return result;
+      allItems.push(...pageItems);
+
+      // Check pagination next page existence
+      let pageHasMore = false;
+      $('a').each((_, el) => {
+        const text = $(el).text().trim();
+        const href = $(el).attr('href') || '';
+        if (href.includes(`page=${page + 1}`) || (text.includes('Berikutnya') && href.includes(`page=${page + 1}`))) {
+          pageHasMore = true;
+        }
+      });
+
+      hasMore = pageHasMore;
+      page++;
+    }
+
+    if (allItems.length > 0) {
+      cachedAllMovies = allItems;
+      cachedAllMoviesExpiry = Date.now() + ALL_MOVIES_TTL;
+    }
+    return allItems;
   } catch (err: any) {
-    console.error('Error fetching Movie Indo catalog:', err.message);
+    console.error('Error fetching all Movie Indo:', err.message);
+    if (cachedAllMovies) {
+      return cachedAllMovies;
+    }
+    return [];
+  }
+}
+
+export async function getMovieIndoCatalog(page: number = 1, q: string = ''): Promise<{ items: MovieItem[]; hasMore: boolean }> {
+  try {
+    const allMovies = await getAllMovieIndo();
+    
+    let filtered = allMovies;
+    if (q.trim()) {
+      const queryLower = q.toLowerCase().trim();
+      filtered = allMovies.filter(item => item.title.toLowerCase().includes(queryLower));
+    }
+
+    const itemsPerPage = 60;
+    const startIndex = (page - 1) * itemsPerPage;
+    const paginatedItems = filtered.slice(startIndex, startIndex + itemsPerPage);
+    const hasMore = startIndex + itemsPerPage < filtered.length;
+
+    return { items: paginatedItems, hasMore };
+  } catch (err: any) {
+    console.error('Error getting Movie Indo catalog:', err.message);
     return { items: [], hasMore: false };
   }
 }

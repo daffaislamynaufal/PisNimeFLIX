@@ -1,9 +1,10 @@
 import React from 'react';
 import Link from 'next/link';
 import { getMovieIndoCatalog } from '@/lib/movie-indo';
+import MovieSearch from './MovieSearch';
 
 interface CatalogPageProps {
-  searchParams: Promise<{ page?: string }>;
+  searchParams: Promise<{ page?: string; q?: string }>;
 }
 
 export const metadata = {
@@ -15,8 +16,18 @@ export default async function MovieIndoPage({ searchParams }: CatalogPageProps) 
   const params = await searchParams;
   const page = parseInt(params.page || '1', 10);
   const pageVal = isNaN(page) || page <= 0 ? 1 : page;
+  const qVal = params.q || '';
 
-  const { items, hasMore } = await getMovieIndoCatalog(pageVal);
+  const { items, hasMore } = await getMovieIndoCatalog(pageVal, qVal);
+
+  const buildPageUrl = (targetPage: number) => {
+    const queryParams = new URLSearchParams();
+    queryParams.set('page', String(targetPage));
+    if (qVal) {
+      queryParams.set('q', qVal);
+    }
+    return `/movie-indo?${queryParams.toString()}`;
+  };
 
   return (
     <div className="min-h-screen py-8 px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto relative overflow-hidden">
@@ -26,7 +37,7 @@ export default async function MovieIndoPage({ searchParams }: CatalogPageProps) 
 
       <div className="relative z-10">
         {/* Header Title Section */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-10">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
           <div>
             <h1 className="font-display-lg text-2xl md:text-3xl font-extrabold text-white mb-2 leading-tight tracking-tight">
               Film Indonesia
@@ -42,19 +53,27 @@ export default async function MovieIndoPage({ searchParams }: CatalogPageProps) 
           </div>
         </div>
 
+        {/* Search Bar Component */}
+        <MovieSearch key={qVal} initialQuery={qVal} />
+
         {/* Movies Grid */}
         {items.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center bg-surface-container/20 border border-white/5 rounded-3xl p-8 backdrop-blur-md">
-            <span className="material-symbols-outlined text-on-surface-variant/40 text-5xl mb-4">movie</span>
+            <span className="material-symbols-outlined text-on-surface-variant/40 text-5xl mb-4">
+              {qVal ? 'search_off' : 'movie'}
+            </span>
             <h3 className="text-white font-bold text-lg mb-2">Film Tidak Ditemukan</h3>
             <p className="text-on-surface-variant text-sm max-w-md">
-              Gagal memuat daftar film Indonesia atau halaman yang Anda cari kosong. Silakan kembali ke halaman pertama.
+              {qVal 
+                ? `Maaf, kami tidak dapat menemukan film yang cocok dengan kata kunci "${qVal}". Silakan coba cari dengan kata kunci lain.`
+                : 'Gagal memuat daftar film Indonesia atau halaman yang Anda cari kosong. Silakan kembali ke halaman pertama.'
+              }
             </p>
             <Link
               href="/movie-indo"
               className="text-decoration-none mt-6 px-6 py-2.5 rounded-xl font-bold text-xs bg-primary text-white hover:opacity-90 active:scale-95 transition-all"
             >
-              Halaman Pertama
+              {qVal ? 'Hapus Pencarian' : 'Halaman Pertama'}
             </Link>
           </div>
         ) : (
@@ -98,7 +117,7 @@ export default async function MovieIndoPage({ searchParams }: CatalogPageProps) 
             {/* Pagination Controls */}
             <div className="flex justify-center items-center gap-4 mt-16 pt-6 border-t border-white/5">
               <Link
-                href={pageVal > 1 ? `/movie-indo?page=${pageVal - 1}` : '#'}
+                href={pageVal > 1 ? buildPageUrl(pageVal - 1) : '#'}
                 className={`text-decoration-none px-5 py-3 rounded-xl text-xs font-bold transition-all border flex items-center gap-2 ${
                   pageVal > 1
                     ? 'bg-surface-container-high text-on-surface border-white/5 hover:border-primary/30 active:scale-95 cursor-pointer'
@@ -115,7 +134,7 @@ export default async function MovieIndoPage({ searchParams }: CatalogPageProps) 
               </span>
 
               <Link
-                href={hasMore ? `/movie-indo?page=${pageVal + 1}` : '#'}
+                href={hasMore ? buildPageUrl(pageVal + 1) : '#'}
                 className={`text-decoration-none px-5 py-3 rounded-xl text-xs font-bold transition-all border flex items-center gap-2 ${
                   hasMore
                     ? 'bg-surface-container-high text-on-surface border-white/5 hover:border-primary/30 active:scale-95 cursor-pointer'

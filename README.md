@@ -70,8 +70,7 @@ npm start
 ```text
 ├── src/
 │   ├── app/
-│   │   ├── anime/            # Detail info anime berdasarkan ID
-│   │   ├── anime-list/       # Katalog anime & panel filter pencarian
+│   │   ├── anime/            # Katalog anime, filter/pencarian, dan detail info anime berdasarkan ID
 │   │   ├── api/              # API Endpoint lokal pendukung scraper
 │   │   ├── manga/            # Halaman maintenance baca manga
 │   │   ├── movies/           # Katalog film layar lebar (movies)

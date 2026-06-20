@@ -11,7 +11,6 @@ export function DesktopNavbar() {
     { label: 'Anime List', href: '/anime-list' },
     { label: 'Komik', href: '/komik' },
     { label: 'Movies', href: '/movies' },
-    { label: 'Schedule', href: '/schedule' },
   ];
 
   return (
@@ -43,7 +42,6 @@ export function MobileNavbar() {
     { label: 'Home', href: '/', icon: 'home' },
     { label: 'Movies', href: '/movies', icon: 'movie' },
     { label: 'Komik', href: '/komik', icon: 'menu_book' },
-    { label: 'Schedule', href: '/schedule', icon: 'calendar_today' },
     { label: 'Profile', href: '#', icon: 'person' },
   ];
 

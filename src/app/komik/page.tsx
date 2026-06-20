@@ -18,10 +18,17 @@ interface ComicItem {
 }
 
 export default function KomikCatalogPage() {
+  const getCleanImageUrl = (url: string) => {
+    if (!url) return '';
+    // Removes WordPress image resizing suffixes (e.g., -150x150, -300x400) to fetch the full uncropped image
+    return url.replace(/-(\d+)x(\d+)\.(jpg|jpeg|png|webp)/i, '.$3');
+  };
+
   const getProxiedImageUrl = (url: string) => {
     if (!url) return '/asset/img/placeholder.jpg';
     if (url.startsWith('/') || url.startsWith('data:')) return url;
-    return `/api/komik/image?url=${encodeURIComponent(url)}`;
+    const cleanUrl = getCleanImageUrl(url);
+    return `/api/komik/image?url=${encodeURIComponent(cleanUrl)}`;
   };
 
   const [activeTab, setActiveTab] = useState<'all' | 'manga' | 'manhwa' | 'manhua'>('all');

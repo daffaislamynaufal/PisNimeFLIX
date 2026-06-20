@@ -11,6 +11,7 @@ export function DesktopNavbar() {
     { label: 'Anime', href: '/anime' },
     { label: 'Komik', href: '/komik' },
     { label: 'Dracin', href: '/dracin' },
+    { label: 'Movie Indo', href: '/movie-indo' },
   ];
 
   return (
@@ -43,6 +44,7 @@ export function MobileNavbar() {
     { label: 'Anime', href: '/anime', icon: 'smart_display' },
     { label: 'Komik', href: '/komik', icon: 'menu_book' },
     { label: 'Dracin', href: '/dracin', icon: 'live_tv' },
+    { label: 'Movie Indo', href: '/movie-indo', icon: 'movie' },
     { label: 'Profile', href: '#', icon: 'person' },
   ];
 

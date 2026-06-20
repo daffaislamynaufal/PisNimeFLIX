@@ -15,6 +15,9 @@ interface AnimeItem {
 
 export default function AnimeCatalogPage() {
   const [activeTab, setActiveTab] = useState<'ongoing' | 'completed'>('ongoing');
+  const [selectedGenre, setSelectedGenre] = useState('all');
+  const [selectedType, setSelectedType] = useState('all');
+  const [selectedSort, setSelectedSort] = useState('newest');
   const [searchQuery, setSearchQuery] = useState('');
   const [searchTrigger, setSearchTrigger] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -58,6 +61,9 @@ export default function AnimeCatalogPage() {
     setActiveTab(tab);
     setSearchQuery('');
     setSearchTrigger('');
+    setSelectedType('all');
+    setSelectedGenre('all');
+    setSelectedSort('newest');
     setCurrentPage(1);
   };
 
@@ -72,6 +78,52 @@ export default function AnimeCatalogPage() {
     setCurrentPage(page);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
+
+  const getDisplayedAnime = () => {
+    let list = [...animeList];
+
+    // Client-side type filter based on title heuristic
+    if (selectedType !== 'all') {
+      list = list.filter((item) => {
+        const titleLower = item.title.toLowerCase();
+        if (selectedType === 'movie') {
+          return titleLower.includes('movie') || titleLower.includes('film') || titleLower.includes('the movie');
+        } else if (selectedType === 'ova') {
+          return titleLower.includes('ova');
+        } else if (selectedType === 'special') {
+          return titleLower.includes('special') || titleLower.includes('spesial');
+        } else if (selectedType === 'tv') {
+          return !titleLower.includes('movie') && !titleLower.includes('film') && !titleLower.includes('the movie') && !titleLower.includes('ova') && !titleLower.includes('special') && !titleLower.includes('spesial');
+        }
+        return true;
+      });
+    }
+
+    // Client-side sort
+    if (selectedSort === 'rating') {
+      list.sort((a, b) => {
+        const getScore = (item: AnimeItem) => {
+          if (item.releaseDay && item.releaseDay.includes('★')) {
+            const num = parseFloat(item.releaseDay.replace('★', '').trim());
+            return isNaN(num) ? 0 : num;
+          }
+          return 0;
+        };
+        return getScore(b) - getScore(a);
+      });
+    } else if (selectedSort === 'popular') {
+      // Simple popular simulation using string length and episode count values
+      list.sort((a, b) => {
+        const aEp = parseInt(a.episodes || '0', 10) || 0;
+        const bEp = parseInt(b.episodes || '0', 10) || 0;
+        return bEp - aEp;
+      });
+    }
+
+    return list;
+  };
+
+  const displayedAnime = getDisplayedAnime();
 
   return (
     <div className="min-h-screen px-margin-mobile md:px-margin-desktop py-8 max-w-container-max mx-auto relative overflow-hidden">
@@ -111,6 +163,66 @@ export default function AnimeCatalogPage() {
               Cari
             </button>
           </form>
+        </div>
+
+        {/* Filter Section */}
+        <div className="w-full bg-surface-container-high/20 border border-outline-variant/20 rounded-2xl p-6 mb-8 backdrop-blur-md">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="flex flex-col gap-2">
+              <label className="font-label-sm text-on-surface-variant text-[10px] uppercase tracking-widest font-bold">Genre</label>
+              <select 
+                value={selectedGenre} 
+                onChange={(e) => setSelectedGenre(e.target.value)}
+                className="w-full bg-surface-container-high/40 border border-outline-variant/30 text-white rounded-xl py-2.5 px-3 focus:outline-none focus:border-primary backdrop-blur-md text-sm outline-none cursor-pointer"
+              >
+                <option value="all" className="bg-surface-container-highest text-white">Semua Genre</option>
+                <option value="action" className="bg-surface-container-highest text-white">Action</option>
+                <option value="adventure" className="bg-surface-container-highest text-white">Adventure</option>
+                <option value="fantasy" className="bg-surface-container-highest text-white">Fantasy</option>
+                <option value="romance" className="bg-surface-container-highest text-white">Romance</option>
+              </select>
+            </div>
+            
+            <div className="flex flex-col gap-2">
+              <label className="font-label-sm text-on-surface-variant text-[10px] uppercase tracking-widest font-bold">Status</label>
+              <select 
+                value={activeTab} 
+                onChange={(e) => handleTabChange(e.target.value as 'ongoing' | 'completed')}
+                className="w-full bg-surface-container-high/40 border border-outline-variant/30 text-white rounded-xl py-2.5 px-3 focus:outline-none focus:border-primary backdrop-blur-md text-sm outline-none cursor-pointer"
+              >
+                <option value="ongoing" className="bg-surface-container-highest text-white">Ongoing</option>
+                <option value="completed" className="bg-surface-container-highest text-white">Completed</option>
+              </select>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <label className="font-label-sm text-on-surface-variant text-[10px] uppercase tracking-widest font-bold">Tipe</label>
+              <select 
+                value={selectedType}
+                onChange={(e) => setSelectedType(e.target.value)}
+                className="w-full bg-surface-container-high/40 border border-outline-variant/30 text-white rounded-xl py-2.5 px-3 focus:outline-none focus:border-primary backdrop-blur-md text-sm outline-none cursor-pointer"
+              >
+                <option value="all" className="bg-surface-container-highest text-white">Semua Tipe</option>
+                <option value="tv" className="bg-surface-container-highest text-white">TV Series</option>
+                <option value="movie" className="bg-surface-container-highest text-white">Movie</option>
+                <option value="ova" className="bg-surface-container-highest text-white">OVA</option>
+                <option value="special" className="bg-surface-container-highest text-white">Special</option>
+              </select>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <label className="font-label-sm text-on-surface-variant text-[10px] uppercase tracking-widest font-bold">Urutkan</label>
+              <select 
+                value={selectedSort}
+                onChange={(e) => setSelectedSort(e.target.value)}
+                className="w-full bg-surface-container-high/40 border border-outline-variant/30 text-white rounded-xl py-2.5 px-3 focus:outline-none focus:border-primary backdrop-blur-md text-sm outline-none cursor-pointer"
+              >
+                <option value="newest" className="bg-surface-container-highest text-white">Terbaru</option>
+                <option value="popular" className="bg-surface-container-highest text-white">Populer</option>
+                <option value="rating" className="bg-surface-container-highest text-white">Rating Terbaik</option>
+              </select>
+            </div>
+          </div>
         </div>
 
         {/* Catalog Navigation Tabs */}
@@ -171,7 +283,7 @@ export default function AnimeCatalogPage() {
         )}
 
         {/* Empty Catalog State */}
-        {!loading && !error && animeList.length === 0 && (
+        {!loading && !error && displayedAnime.length === 0 && (
           <div className="text-center py-20 bg-surface-container/20 border border-white/5 rounded-3xl backdrop-blur-sm max-w-xl mx-auto">
             <span className="material-symbols-outlined text-5xl text-on-surface-variant/40 mb-4">
               search_off
@@ -184,10 +296,10 @@ export default function AnimeCatalogPage() {
         )}
 
         {/* Grid Catalog */}
-        {!loading && !error && animeList.length > 0 && (
+        {!loading && !error && displayedAnime.length > 0 && (
           <div>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
-              {animeList.map((anime) => (
+              {displayedAnime.map((anime) => (
                 <div
                   key={anime.animeId}
                   className="group bg-surface-container/30 border border-white/5 rounded-2xl overflow-hidden hover:border-primary/40 hover:bg-surface-container/60 transition-all duration-300 flex flex-col justify-between shadow-lg hover:shadow-primary/5 hover:-translate-y-1"

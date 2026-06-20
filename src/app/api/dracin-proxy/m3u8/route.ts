@@ -6,8 +6,8 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const path = searchParams.get('path') || '';
 
-    // Security validation: path must strictly match expected pattern /api/<provider>/proxy-m3u8?url=<encoded_url>
-    if (!path || !/^\/api\/[a-zA-Z0-9_-]+\/proxy-m3u8\?url=https?%3A%2F%2F/.test(path)) {
+    // Security validation: path must strictly match expected pattern /api/(<provider>/)?(proxy-m3u8|m3u8-proxy)?url=<encoded_url>
+    if (!path || !/^\/api\/(?:[a-zA-Z0-9_-]+\/)?(?:proxy-m3u8|m3u8-proxy)\?url=https?%3A%2F%2F/.test(path)) {
       return NextResponse.json({ error: 'Invalid or unauthorized path parameter.' }, { status: 400 });
     }
 
